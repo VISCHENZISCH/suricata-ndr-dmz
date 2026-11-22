@@ -1,0 +1,37 @@
+# Secrets
+.env
+*.pem
+*.key
+secrets/
+
+# Données générées par les conteneurs
+suricata/logs/
+*.log
+eve.json
+evebox/data/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+data/
+
+# Règles téléchargées (régénérées par update-rules.sh)
+suricata/rules/suricata.rules
+suricata/rules/*.rules
+!suricata/rules/local.rules
+
+# Captures réseau
+*.pcap
+*.pcapng
+
+# Rapport et fichiers temporaires
+docs/*.aux
+docs/*.log
+*.tmp
+*.swp
+*.bak
+
+# Système et éditeurs
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
