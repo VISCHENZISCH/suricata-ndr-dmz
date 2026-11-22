@@ -1,4 +1,4 @@
-<h1 align="center">Suricata NDR - DMZ Lab</h1>
+<h1 align="center">Suricata NDR - DMZ</h1>
 
 <p align="center">
   Détection d'intrusions réseau (NIDS/NDR) avec <b>Suricata</b> et <b>EveBox</b>,<br>
