@@ -37,9 +37,9 @@ Ce projet déploie un NIDS **Suricata** qui inspecte en temps réel le trafic d'
        web             db           suricata  ── eve.json ──┐
      (nginx)        (postgres)       (NIDS)                 │
                                                             ▼
-                             ┌─────────┐   ┌──────────┐  ┌─────────┐
+                             ┌─────────┐   ┌──────────┐  ┌────────┐
                                Mailpit  ◄──  alerting  ◄─  EveBox  
-                             └─────────┘   └──────────┘  └─────────┘
+                             └─────────┘   └──────────┘  └────────┘
 ```
 
 Suricata partage l'espace réseau du serveur web pour observer tout le trafic qui lui est destiné.
