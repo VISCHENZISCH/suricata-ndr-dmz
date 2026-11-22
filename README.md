@@ -33,12 +33,12 @@ Ce projet déploie un NIDS **Suricata** qui inspecte en temps réel le trafic d'
                        │  réseau DMZ (172.20.0.0/24)
         ┌──────────────┼───────────────┐
         │              │               │
-        ▼              ▼              ▼
+        ▼              ▼               ▼
        web             db           suricata  ── eve.json ──┐
      (nginx)        (postgres)       (NIDS)                 │
                                                             ▼
                              ┌─────────┐   ┌──────────┐  ┌─────────┐
-                             │ Mailpit │◄──  alerting  ◄─  EveBox  
+                               Mailpit  ◄──  alerting  ◄─  EveBox  
                              └─────────┘   └──────────┘  └─────────┘
 ```
 
