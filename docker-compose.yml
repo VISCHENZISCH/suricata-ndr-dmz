@@ -1,0 +1,38 @@
+name: suricata-ndr-dmz
+
+networks:
+  dmz:
+    name: suricata-ndr-dmz_dmz
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+
+services:
+  #*****************************************
+  #     Serveur Web Nginx
+  #*****************************************
+  web:
+    image: nginx:1.27-alpine
+    container_name: g2-web
+    hostname: web
+    networks:
+      dmz:
+        ipv4_address: 172.20.0.10
+    ports:
+      - "127.0.0.1:8082:80"
+    volumes:
+      - ./dmz/web:/usr/share/nginx/html:ro
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
