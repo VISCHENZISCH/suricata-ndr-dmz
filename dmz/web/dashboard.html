@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tableau de Bord &amp; Métrologie DMZ - Groupe 2</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <!-- ===  HEADER  === -->
+  <header>
+    <div class="topbar">
+      <a href="index.html" class="logo-link">
+        <img src="Logo cyber NDR DMZ Suricata futuriste.png" alt="Logo" onerror="this.style.display='none'">
+        <span class="site-title">Suricata <span class="accent">NDR</span> · DMZ</span>
+      </a>
+      <div class="topbar-right">
+        <button class="theme-toggle" onclick="document.documentElement.classList.toggle('dark')"
+          title="Basculer le thème">&#9681;</button>
+        <button class="menu-toggle" onclick="document.querySelector('.navbar').classList.toggle('open')"
+          title="Menu">&#9776;</button>
+      </div>
+    </div>
+    <nav class="navbar">
+      <a href="index.html">Accueil</a>
+      <a href="dashboard.html" class="active">Dashboard</a>
+      <a href="search.html">Recherche</a>
+      <a href="login.html">Connexion</a>
+      <a href="register.html">Inscription</a>
+    </nav>
+  </header>
+
+  <!-- ===  PAGE BODY  === -->
+  <div class="page-body">
+
+    <main>
+      <div class="tags">
+        <span class="tag">Supervision</span>
+        <span class="tag">Métriques</span>
+        <span class="tag">Alertes Suricata</span>
+        <span class="tag">Santé DMZ</span>
+        <span class="tag">EveBox</span>
+      </div>
+
+      <h1>Tableau de bord &amp; Métrologie DMZ</h1>
+
+      <!-- Statut des composants -->
+      <div class="section" id="sondes">
+        <h2>Statut des sondes &amp; conteneurs DMZ</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Service</th>
+              <th>Conteneur</th>
+              <th>Adresse IP</th>
+              <th>Rôle réseau</th>
+              <th>Statut</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Serveur Web</strong></td>
+              <td><code>g2-web</code></td>
+              <td>172.20.0.10</td>
+              <td>Nginx 1.27 Alpine (port 80/tcp)</td>
+              <td><span class="badge-status badge-ok">EN LIGNE</span></td>
+            </tr>
+            <tr>
+              <td><strong>NIDS Suricata</strong></td>
+              <td><code>g2-suricata</code></td>
+              <td>Partage net:g2-web</td>
+              <td>Inspection temps réel multi-threadée</td>
+              <td><span class="badge-status badge-ok">ACTIF (PROMISC)</span></td>
+            </tr>
+            <tr>
+              <td><strong>Console EveBox</strong></td>
+              <td><code>g2-evebox</code></td>
+              <td>172.20.0.30</td>
+              <td>Centralisation &amp; acquittement (port 5636)</td>
+              <td><span class="badge-status badge-ok">EN LIGNE</span></td>
+            </tr>
+            <tr>
+              <td><strong>Base de données</strong></td>
+              <td><code>g2-db</code></td>
+              <td>172.20.0.20</td>
+              <td>PostgreSQL (port 5432/tcp)</td>
+              <td><span class="badge-status badge-ok">EN LIGNE</span></td>
+            </tr>
+            <tr>
+              <td><strong>Conteneur Attaquant</strong></td>
+              <td><code>g2-attacker</code></td>
+              <td>172.20.0.50</td>
+              <td>Injection scénario d'attaque (<code>scenario.sh</code>)</td>
+              <td><span class="badge-status badge-warn">ATTENTE SCÉNARIO</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Alertes qualifiées -->
+      <div class="section" id="alertes">
+        <h2>Dernières alertes de sécurité qualifiées</h2>
+        <p>Événements prioritaires capturés par la sonde Suricata lors de l'exécution des tests d'intrusion :</p>
+        <table>
+          <thead>
+            <tr>
+              <th>SID</th>
+              <th>Signature de détection</th>
+              <th>Protocole / Cible</th>
+              <th>Sévérité</th>
+              <th>Statut EveBox</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>1000001</code></td>
+              <td>CUSTOM SQLi UNION SELECT dans URI</td>
+              <td>HTTP 172.20.0.10:80</td>
+              <td><span class="badge-status badge-crit">SÉVÉRITÉ 1</span></td>
+              <td>Non acquittée</td>
+            </tr>
+            <tr>
+              <td><code>1000002</code></td>
+              <td>CUSTOM User-Agent outil d'attaque (sqlmap)</td>
+              <td>HTTP 172.20.0.10:80</td>
+              <td><span class="badge-status badge-warn">SÉVÉRITÉ 2</span></td>
+              <td>Qualifiée</td>
+            </tr>
+            <tr>
+              <td><code>1000003</code></td>
+              <td>CUSTOM Volume DNS anormal (tunneling)</td>
+              <td>DNS 172.20.0.10:53</td>
+              <td><span class="badge-status badge-crit">SÉVÉRITÉ 1</span></td>
+              <td>Non acquittée</td>
+            </tr>
+            <tr>
+              <td><code>2000537</code></td>
+              <td>ET SCAN Potential Nmap SYN Scan</td>
+              <td>TCP Ports 1-1024</td>
+              <td><span class="badge-status badge-warn">SÉVÉRITÉ 3</span></td>
+              <td>Acquittée</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="note tip">
+          <p>Pour consulter l'arborescence complète des événements, classifier par sévérité ou acquitter un faux
+            positif, accédez à la console <a href="http://127.0.0.1:5636" target="_blank" rel="noopener">EveBox (port
+              5636)</a>.</p>
+        </div>
+      </div>
+
+      <!-- Événement EVE JSON brut -->
+      <div class="section" id="eve-json">
+        <h2>Format des événements EVE JSON</h2>
+        <p>Extrait type d'un événement généré par Suricata et parsé par EveBox :</p>
+        <pre><code>{
+  "timestamp": "2026-11-24T00:20:11.412850+0100",
+  "flow_id": 1184920491823,
+  "in_iface": "eth0",
+  "event_type": "alert",
+  "src_ip": "172.20.0.50",
+  "src_port": 45892,
+  "dest_ip": "172.20.0.10",
+  "dest_port": 80,
+  "proto": "TCP",
+  "alert": {
+    "action": "allowed",
+    "gid": 1,
+    "signature_id": 1000001,
+    "rev": 1,
+    "signature": "CUSTOM SQLi UNION SELECT dans URI",
+    "category": "Web Application Attack",
+    "severity": 1
+  },
+  "http": {
+    "hostname": "web",
+    "url": "/search.html?q=1%27%20UNION%20SELECT%20username,password%20FROM%20users--",
+    "http_user_agent": "Mozilla/5.0 (Kali Linux)",
+    "http_method": "GET",
+    "protocol": "HTTP/1.1",
+    "status": 200
+  }
+}</code></pre>
+      </div>
+
+      <!-- Règles de détection -->
+      <div class="section" id="regles-stats">
+        <h2>Statistiques des règles NIDS</h2>
+        <ul>
+          <li><strong>Règles communautaires Emerging Threats (ET Open) :</strong> 32 418 signatures actives compilées
+            par <code>suricata-update</code>.</li>
+          <li><strong>Signatures personnalisées DMZ (local.rules) :</strong> 3 signatures créées pour la validation du
+            lab.</li>
+          <li><strong>Moteur d'inspection :</strong> Suricata multi-threadé avec capture haute performance
+            <code>AF_PACKET</code>.
+          </li>
+        </ul>
+      </div>
+
+    </main>
+
+    <!-- ===  SIDEBAR  === -->
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <h3>Table des matières</h3>
+        <ul>
+          <li><a href="#sondes">Statut des sondes</a></li>
+          <li><a href="#alertes">Alertes qualifiées</a></li>
+          <li><a href="#eve-json">Événements EVE JSON</a></li>
+          <li><a href="#regles-stats">Règles de détection</a></li>
+        </ul>
+      </div>
+
+      <div class="sidebar-section">
+        <h3>Outils de la page</h3>
+        <ul>
+          <li><a href="search.html">Recherche d'événements</a></li>
+          <li><a href="login.html">Connexion opérateur</a></li>
+          <li><a href="index.html">Page d'accueil</a></li>
+        </ul>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- ===  FOOTER  === -->
+  <footer>
+    <p>Supervision DMZ &copy; 2026 Groupe 2 - Suricata NIDS &amp; EveBox Monitoring</p>
+  </footer>
+
+</body>
+
+</html>

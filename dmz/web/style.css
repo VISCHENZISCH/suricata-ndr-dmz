@@ -1,0 +1,962 @@
+/* ======================================================================
+   Portail DMZ – Groupe 2 – Suricata & EveBox
+   Design « documentation » en gris, dérivé d'ubuntu-fr
+   Palette logo : #010101 #121214 #FB850B #F16905 #994906 #4C2406
+                  #F4F4F5 #CBCBCC #3D4145 #868686
+   ====================================================================== */
+
+/* --- Google Fonts (Ubuntu + Ubuntu Mono) --- */
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,400;0,700&family=Ubuntu+Mono&display=swap');
+
+/* ===  1. Variables  === */
+:root {
+  /* palette logo — neutres */
+  --noir-profond: #010101;
+  --anthracite: #121214;
+  --gris-acier: #3D4145;
+  --gris-moyen: #868686;
+  --gris-clair: #CBCBCC;
+  --blanc: #F4F4F5;
+  --gris-cellule: #F0F0F2;
+  --texte: #111111;
+
+  /* palette logo — orange */
+  --orange-vif: #FB850B;
+  --orange-profond: #F16905;
+  --orange-brule: #994906;
+  --brun-sombre: #4C2406;
+
+  /* tons dérivés pour le contenu clair */
+  --fond-contenu: #E8E8EC;
+  --gris-titre: #1A1A1E;
+
+  /* notes (tons chauds assortis à la palette) */
+  --tip: #D4E8D0;
+  --info: #D0DBE8;
+  --warning: #F2D6C4;
+  --important: #E0E0E4;
+  --help: #D8E4D6;
+
+  font-size: min(15px, calc(12px + .3vw));
+}
+
+/* ===  2. Reset  === */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ===  3. html / body  === */
+html {
+  background: linear-gradient(150deg, var(--noir-profond) -100%, var(--anthracite) 60%, var(--gris-acier) 150%) fixed;
+  background-color: var(--anthracite);
+  font-family: ubuntu, "Trebuchet MS", "Open Sans", sans-serif;
+  color: var(--texte);
+  min-height: 100%;
+}
+
+body {
+  width: min(1080px, calc(100% - 0.5rem));
+  margin: 0 auto;
+  padding-left: 0.1rem;
+  padding-right: 0.1rem;
+  box-shadow: 0 0 15px rgba(0, 0, 0, .5);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ===  4. Header – topbar + navbar  === */
+body>header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 0 8px 2px rgba(0, 0, 0, .8);
+}
+
+/* Topbar = #010101, identical to logo background → logo melts in */
+.topbar {
+  background: var(--noir-profond);
+  height: 3.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.2rem;
+}
+
+.topbar .logo-link {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  text-decoration: none;
+  color: var(--blanc);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.topbar .logo-link:hover {
+  background: transparent;
+}
+
+/* Logo blends seamlessly on #010101 */
+.topbar .logo-link img {
+  height: 38px;
+  width: auto;
+  display: block;
+  border: none;
+  outline: none;
+  mix-blend-mode: lighten;
+}
+
+.topbar .logo-link .site-title {
+  letter-spacing: .5px;
+}
+
+.topbar .logo-link .site-title .accent {
+  color: var(--orange-vif);
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.topbar-right .theme-toggle {
+  background: none;
+  border: none;
+  color: var(--gris-clair);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: .3rem .5rem;
+}
+
+.topbar-right .theme-toggle:hover {
+  color: #fff;
+}
+
+.navbar {
+  background: linear-gradient(150deg, var(--noir-profond) -150%, var(--gris-acier) 200%);
+  display: flex;
+  align-items: stretch;
+  overflow-x: auto;
+}
+
+.navbar a {
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+  height: 2.6rem;
+  font-size: .88rem;
+  color: var(--gris-clair);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background .15s, color .15s;
+}
+
+.navbar a:hover {
+  color: #fff;
+  background: var(--gris-acier);
+}
+
+.navbar a.active {
+  color: var(--noir-profond);
+  background: linear-gradient(170deg, var(--orange-vif), var(--orange-profond));
+}
+
+/* ===  5. Main: content + sidebar  === */
+.page-body {
+  display: grid;
+  grid-template-columns: 1fr 14rem;
+  grid-template-areas: 'content sidebar';
+  flex: 1;
+}
+
+main {
+  grid-area: content;
+  background: var(--fond-contenu);
+  padding: 1.2rem 1.4rem;
+}
+
+/* ===  6. Sidebar  === */
+.sidebar {
+  grid-area: sidebar;
+  background: linear-gradient(150deg, var(--anthracite), var(--gris-acier) 200%);
+  color: var(--gris-clair);
+  padding: 1rem .8rem;
+  overflow-y: auto;
+  font-size: .8rem;
+}
+
+.sidebar-section {
+  margin-bottom: 1.2rem;
+}
+
+.sidebar-section h3 {
+  font-size: .88rem;
+  font-weight: 700;
+  color: var(--blanc);
+  margin-bottom: .4rem;
+  padding-bottom: .25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, .15);
+}
+
+.sidebar-section ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.sidebar-section li {
+  margin-bottom: .25rem;
+}
+
+.sidebar-section ul>li::before,
+.sidebar ul>li::before,
+.sidebar li::before {
+  content: none;
+}
+
+.sidebar-section li.level2 {
+  padding-left: 1.2em;
+}
+
+.sidebar-section a {
+  display: block;
+  padding: .35rem .6rem;
+  color: var(--gris-clair);
+  text-decoration: none;
+  transition: color .15s, background .15s;
+}
+
+.sidebar-section a:hover {
+  color: var(--orange-vif);
+  background: rgba(255, 255, 255, .08);
+}
+
+/* ===  7. Typography  === */
+p {
+  font-size: .85rem;
+  line-height: 1.6em;
+  margin: .5em 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--gris-titre);
+  font-weight: bold;
+  line-height: 1.4em;
+}
+
+h1 {
+  font-size: 1.5rem;
+  margin: 1em 0 .8em;
+}
+
+h2 {
+  font-size: 1.25rem;
+  margin: 1.2em 0 .6em;
+}
+
+h3 {
+  font-size: 1.05rem;
+  margin: 1em 0 .5em;
+}
+
+h4 {
+  font-size: .9rem;
+  margin: .8em 0 .4em;
+}
+
+h5 {
+  font-size: .9rem;
+  margin: .6em 0 .3em;
+}
+
+h6 {
+  font-size: .9rem;
+  margin: .5em 0 .2em;
+}
+
+h1:first-child {
+  margin-top: .5em;
+}
+
+/* ===  8. Links  === */
+a {
+  color: var(--orange-brule);
+  text-decoration: none;
+  padding: .1rem .25rem;
+  transition: background .15s, color .15s;
+}
+
+a:hover {
+  color: #fff;
+  background: var(--orange-vif);
+}
+
+/* ===  9. Lists  === */
+ul,
+ol {
+  padding-left: 1.2em;
+  list-style: none;
+}
+
+ul>li,
+ol>li {
+  position: relative;
+  margin-bottom: .3em;
+  line-height: 1.6em;
+  font-size: .85rem;
+}
+
+ul>li::before {
+  content: '\2022';
+  color: var(--orange-vif);
+  opacity: .8;
+  position: absolute;
+  left: -1em;
+  font-weight: bold;
+}
+
+ol {
+  counter-reset: ol-counter;
+}
+
+ol>li {
+  counter-increment: ol-counter;
+}
+
+ol>li::before {
+  content: counter(ol-counter) '.';
+  color: var(--orange-vif);
+  font-weight: bold;
+  font-size: .8em;
+  position: absolute;
+  left: -1.8em;
+  text-align: right;
+  width: 1.4em;
+}
+
+/* ===  10. Code  === */
+code,
+pre {
+  font-family: "Ubuntu Mono", Consolas, Monaco, "Courier New", monospace;
+}
+
+code {
+  background: var(--anthracite);
+  color: var(--blanc);
+  padding: 0 .2rem;
+  border-top: .25em solid var(--anthracite);
+  border-bottom: .25em solid var(--anthracite);
+}
+
+pre {
+  background: var(--anthracite);
+  color: var(--blanc);
+  border-left: .5rem solid var(--gris-acier);
+  padding: .8rem;
+  overflow-x: auto;
+  margin: .6em 0;
+  position: relative;
+  font-size: .82rem;
+  line-height: 1.6em;
+}
+
+pre::before {
+  content: '\f120';
+  font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", FontAwesome, sans-serif;
+  font-weight: 900;
+  position: absolute;
+  top: .4rem;
+  right: .6rem;
+  font-size: 4rem;
+  color: var(--orange-vif);
+  opacity: .06;
+  pointer-events: none;
+}
+
+pre a,
+code a {
+  color: var(--orange-vif);
+}
+
+pre a:hover,
+code a:hover {
+  background: var(--orange-vif);
+  color: var(--noir-profond);
+}
+
+pre.file {
+  background: #D4D4D8;
+  color: #333333;
+  border-left-color: var(--gris-clair);
+}
+
+/* ===  11. Tables  === */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: .6em 0;
+}
+
+th {
+  background: var(--anthracite);
+  color: var(--gris-clair);
+  font-weight: normal;
+  padding: 5px 10px;
+  text-align: left;
+}
+
+td {
+  background: var(--gris-cellule);
+  padding: 5px 10px;
+  padding-right: 30px;
+  vertical-align: top;
+  text-align: left;
+  font-size: .82rem;
+}
+
+/* ===  12. Blockquote  === */
+blockquote {
+  background: var(--gris-clair);
+  border-left: .5rem solid var(--gris-moyen);
+  padding: .8rem;
+  margin: .6em 0;
+  color: var(--texte);
+  position: relative;
+}
+
+blockquote::before {
+  content: '\f10e';
+  font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", FontAwesome, sans-serif;
+  font-weight: 900;
+  position: absolute;
+  right: .6rem;
+  top: .4rem;
+  font-size: 3rem;
+  opacity: .08;
+  pointer-events: none;
+}
+
+/* ===  13. Notes  === */
+.note {
+  padding: .8rem .8rem .8rem 1.8rem;
+  margin-bottom: .8rem;
+  color: #222222;
+  position: relative;
+  overflow: hidden;
+}
+
+.note::before {
+  font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", FontAwesome, sans-serif;
+  font-weight: 900;
+  font-size: 4rem;
+  color: rgba(255, 255, 255, .4);
+  position: absolute;
+  left: -0.3rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.note a {
+  color: var(--orange-brule);
+}
+
+.note a:hover {
+  background: var(--orange-brule);
+  color: #fff;
+}
+
+.note.tip {
+  background: var(--tip);
+}
+
+.note.tip::before {
+  content: '\f0eb';
+}
+
+.note.info {
+  background: var(--info);
+}
+
+.note.info::before {
+  content: '\f05a';
+}
+
+.note.warning {
+  background: var(--warning);
+}
+
+.note.warning::before {
+  content: '\f256';
+}
+
+.note.important {
+  background: var(--important);
+}
+
+.note.important::before {
+  content: '\f06a';
+}
+
+.note.help {
+  background: var(--help);
+}
+
+.note.help::before {
+  content: '\f059';
+}
+
+/* ===  14. HR  === */
+hr {
+  border: none;
+  border-top: 1px solid rgba(61, 65, 69, .35);
+  margin: 1em 0;
+}
+
+/* ===  15. Tags / Labels  === */
+.tags {
+  background: none;
+  padding: 0;
+  margin-bottom: .8rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;
+}
+
+.tags a,
+.tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: .75rem;
+  text-transform: uppercase;
+  background: none;
+  color: var(--gris-acier);
+  padding: 0;
+  border-radius: 0;
+  letter-spacing: .5px;
+  font-weight: 700;
+  transition: color .15s;
+}
+
+.tag+.tag::before,
+.tags a+a::before,
+.tags a+.tag::before,
+.tags .tag+a::before {
+  content: '-';
+  color: var(--orange-vif);
+  margin: 0 .45rem;
+  font-weight: 700;
+}
+
+.tags a:hover,
+.tag:hover {
+  background: none;
+  color: var(--orange-vif);
+}
+
+/* ===  16. Footer  === */
+body>footer {
+  background: var(--gris-moyen);
+  color: var(--texte);
+  padding: .6rem 1.2rem;
+  font-size: .75rem;
+  line-height: 1.4;
+}
+
+body>footer a {
+  color: var(--anthracite);
+  font-weight: 700;
+}
+
+body>footer a:hover {
+  background: var(--orange-vif);
+  color: var(--noir-profond);
+}
+
+/* ===  17. Forms  === */
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--gris-titre);
+  margin-bottom: .25rem;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+select,
+textarea {
+  width: 100%;
+  padding: .5rem .8rem;
+  background: #fff;
+  border: 1px solid var(--gris-moyen);
+  color: var(--texte);
+  font-size: .85rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .15s;
+}
+
+select {
+  cursor: pointer;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="search"]:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--orange-vif);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--gris-moyen);
+}
+
+/* Stat Grid / Dashboard */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: .8rem;
+  margin: 1rem 0 1.5rem;
+}
+
+.stat-card {
+  background: var(--gris-cellule);
+  padding: .8rem 1rem;
+  border-left: 3px solid var(--orange-vif);
+}
+
+.stat-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--gris-titre);
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-size: .7rem;
+  text-transform: uppercase;
+  color: var(--gris-moyen);
+  font-weight: 700;
+  letter-spacing: .5px;
+  margin-top: .2rem;
+}
+
+.badge-status {
+  display: inline-block;
+  padding: .15rem .45rem;
+  font-size: .7rem;
+  font-weight: 700;
+}
+
+.badge-ok {
+  background: rgba(34, 197, 94, .15);
+  color: #166534;
+}
+
+.badge-warn {
+  background: rgba(251, 133, 11, .15);
+  color: var(--orange-brule);
+}
+
+.badge-crit {
+  background: rgba(239, 68, 68, .15);
+  color: #991b1b;
+}
+
+html.dark .stat-card {
+  background: #1E1E20;
+}
+
+html.dark .stat-value {
+  color: var(--blanc);
+}
+
+html.dark .stat-label {
+  color: var(--gris-clair);
+}
+
+html.dark .badge-ok {
+  background: rgba(34, 197, 94, .25);
+  color: #86efac;
+}
+
+html.dark .badge-warn {
+  background: rgba(251, 133, 11, .25);
+  color: var(--orange-vif);
+}
+
+html.dark .badge-crit {
+  background: rgba(239, 68, 68, .25);
+  color: #fca5a5;
+}
+
+html.dark input[type="text"],
+html.dark input[type="email"],
+html.dark input[type="password"],
+html.dark input[type="search"],
+html.dark select,
+html.dark textarea {
+  background: var(--noir-profond);
+  border-color: var(--gris-acier);
+  color: #DDDDDD;
+}
+
+button,
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .45rem 1rem;
+  background: var(--anthracite);
+  color: var(--gris-clair);
+  border: none;
+  font-size: .85rem;
+  font-family: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+
+button:hover,
+.btn:hover {
+  background: var(--orange-vif);
+  color: var(--noir-profond);
+}
+
+/* ===  18. Utility  === */
+.section {
+  margin-bottom: 1.2rem;
+}
+
+.flex-row {
+  display: flex;
+  gap: .6rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+strong {
+  font-weight: 700;
+}
+
+/* ===  19. Responsive  === */
+
+/* sidebar collapses ≤1000px */
+@media (max-width: 1000px) {
+  body {
+    width: 100%;
+  }
+
+  .page-body {
+    grid-template-columns: 1fr;
+    grid-template-areas: 'content';
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .sidebar.open {
+    display: block;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 16rem;
+    z-index: 200;
+  }
+
+  .sidebar-toggle {
+    display: inline-flex;
+  }
+}
+
+@media (min-width: 1001px) {
+  .sidebar-toggle {
+    display: none;
+  }
+}
+
+/* mobile nav ≤607px */
+@media (max-width: 607px) {
+  .navbar {
+    display: none;
+  }
+
+  .navbar.open {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    background: linear-gradient(150deg, var(--orange-brule) -100%, var(--anthracite) 150%);
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+  }
+
+  .navbar.open a {
+    font-size: 1.2rem;
+    height: auto;
+    padding: .8rem 2rem;
+    color: var(--blanc);
+  }
+
+  .menu-toggle {
+    display: inline-flex;
+  }
+}
+
+@media (min-width: 608px) {
+  .menu-toggle {
+    display: none;
+  }
+}
+
+/* short viewports */
+@media (min-width: 608px) and (max-height: 800px) {
+  body>header {
+    top: -3.8rem;
+  }
+}
+
+/* ===  20. Dark theme  === */
+html.dark {
+  background: linear-gradient(150deg, var(--noir-profond) 0%, var(--anthracite) 60%, var(--noir-profond) 120%) fixed;
+  color: #DDDDDD;
+}
+
+html.dark main {
+  background: #141416;
+}
+
+html.dark h1,
+html.dark h2,
+html.dark h3,
+html.dark h4,
+html.dark h5,
+html.dark h6 {
+  color: var(--blanc);
+}
+
+html.dark a {
+  color: var(--orange-vif);
+}
+
+html.dark a:hover {
+  color: var(--noir-profond);
+  background: var(--orange-vif);
+}
+
+html.dark code,
+html.dark pre {
+  background: var(--noir-profond);
+}
+
+html.dark pre {
+  border-left-color: var(--gris-acier);
+}
+
+html.dark td {
+  background: #1E1E20;
+}
+
+html.dark blockquote {
+  background: var(--gris-acier);
+  border-left-color: var(--gris-moyen);
+}
+
+html.dark .note {
+  color: var(--blanc);
+}
+
+html.dark .note a {
+  color: var(--orange-vif);
+}
+
+html.dark .note a:hover {
+  background: var(--orange-vif);
+  color: var(--noir-profond);
+}
+
+html.dark .note.tip {
+  background: #2A3A28;
+}
+
+html.dark .note.info {
+  background: #2A3040;
+}
+
+html.dark .note.warning {
+  background: #3E2820;
+}
+
+html.dark .note.important {
+  background: var(--gris-acier);
+}
+
+html.dark .note.help {
+  background: #2E3A2C;
+}
+
+html.dark .tags {
+  background: none;
+}
+
+html.dark .tags a,
+html.dark .tag {
+  background: none;
+  color: var(--gris-clair);
+}
+
+html.dark body>footer {
+  background: #222224;
+  color: var(--gris-clair);
+}
+
+html.dark input[type="text"],
+html.dark input[type="password"],
+html.dark input[type="search"] {
+  background: var(--noir-profond);
+  border-color: var(--gris-acier);
+  color: #DDDDDD;
+}
+
+html.dark .form-label {
+  color: var(--gris-clair);
+}
+
+html.dark .sidebar {
+  background: linear-gradient(150deg, var(--noir-profond), var(--gris-acier) 300%);
+}
+
+html.dark p,
+html.dark li {
+  color: #DDDDDD;
+}

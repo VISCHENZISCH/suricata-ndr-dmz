@@ -36,3 +36,28 @@ services:
       timeout: 3s
       retries: 5
     restart: unless-stopped
+#*********************************************
+#     Serveur de base de données PostgreSQL
+#*********************************************
+  db:
+    image: postgres:16-alpine
+    container_name: g2-db
+    hostname: db
+    networks:
+      dmz:
+        ipv4_address: 172.20.0.11
+    environment:
+      POSTGRES_DB: appdb
+      POSTGRES_USER: appuser
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./dmz/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - db-data:/var/lib/postgresql/data
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appuser -d appdb"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped

@@ -1,11 +1,189 @@
 <!DOCTYPE html>
 <html lang="fr">
-<head><meta charset="utf-8"><title>Portail DMZ</title></head>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Suricata & EveBox - NDR / NIDS - Groupe 2</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
 <body>
-  <h1>Portail interne - Groupe 2</h1>
-  <ul>
-    <li><a href="search.html">Recherche</a></li>
-    <li><a href="login.html">Connexion</a></li>
-  </ul>
+
+  <!-- ===  HEADER  === -->
+  <header>
+    <div class="topbar">
+      <a href="index.html" class="logo-link">
+        <img src="Logo cyber NDR DMZ Suricata futuriste.png" alt="Logo" onerror="this.style.display='none'">
+        <span class="site-title">Suricata <span class="accent">NDR</span> · DMZ</span>
+      </a>
+      <div class="topbar-right">
+        <button class="theme-toggle" onclick="document.documentElement.classList.toggle('dark')"
+          title="Basculer le thème">&#9681;</button>
+        <button class="menu-toggle" onclick="document.querySelector('.navbar').classList.toggle('open')"
+          title="Menu">&#9776;</button>
+      </div>
+    </div>
+    <nav class="navbar">
+      <a href="index.html" class="active">Accueil</a>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="search.html">Recherche</a>
+      <a href="login.html">Connexion</a>
+      <a href="register.html">Inscription</a>
+    </nav>
+  </header>
+
+  <!-- ===  PAGE BODY: content + sidebar  === -->
+  <div class="page-body">
+
+    <main>
+      <!-- Tags -->
+      <div class="tags">
+        <span class="tag">NIDS</span>
+        <span class="tag">Suricata</span>
+        <span class="tag">EveBox</span>
+        <span class="tag">DMZ</span>
+        <span class="tag">Docker</span>
+        <span class="tag">ET Open</span>
+        <span class="tag">Alerting</span>
+      </div>
+
+      <h1>Groupe 2 - Suricata (+ EveBox) : Détection &amp; Analyse de Trafic Réseau (NDR / NIDS)</h1>
+
+      <!-- Introduction -->
+      <div class="section">
+        <h2>Contexte &amp; Justification</h2>
+        <p>
+          En cours, nous avons analysé des paquets avec <code>tcpdump</code> et supervisé le réseau via
+          SNMP. Suricata représente le standard industriel de la détection d'intrusions réseau (NIDS multi-threadé
+          remplaçant Snort). Il inspecte le trafic au vol et génère des flux d'événements EVE JSON exploitables via
+          l'interface web EveBox.
+        </p>
+      </div>
+
+      <!-- Missions clés -->
+      <div class="section">
+        <h2>Missions clés</h2>
+        <ul>
+          <li><strong>Déployer Suricata</strong> en mode écoute sur un sous-réseau Docker simulant une zone DMZ.</li>
+          <li><strong>Mettre à jour et configurer</strong> les règles de détection communautaires Emerging Threats (ET
+            Open).</li>
+          <li><strong>Concevoir au moins 3 signatures</strong> de règles personnalisées :
+            <ul>
+              <li>Détection d'une chaîne malveillante dans une requête HTTP.</li>
+              <li>Détection d'un User-Agent pirate.</li>
+              <li>Détection d'un volume anormal de requêtes DNS.</li>
+            </ul>
+          </li>
+          <li><strong>Déployer EveBox</strong> pour centraliser, classifier par sévérité et acquitter les alertes de
+            sécurité réseau.</li>
+        </ul>
+      </div>
+
+      <!-- Épreuve du feu -->
+      <div class="section">
+        <h2>Épreuve du feu</h2>
+        <p>Script <code>scenario.sh</code> exécuté depuis un conteneur attaquant :</p>
+        <ol>
+          <li>Scan de ports Nmap (SYN scan, scan de versions).</li>
+          <li>Injection SQL ou traversée de répertoires (Directory Traversal) ciblée contre le serveur web.</li>
+          <li>Tentative d'exfiltration de données par tunnel DNS.</li>
+          <li>Démonstration de l'apparition immédiate des alertes qualifiées sur EveBox.</li>
+        </ol>
+      </div>
+
+      <!-- Équipe -->
+      <div class="section">
+        <h2>Équipe</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Rôle</th>
+              <th>Membre</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Architecte Déploiement, DevSecOps, IaC (chef d'équipe)</td>
+              <td>TOVIGNAN Kouassi Félix</td>
+            </tr>
+            <tr>
+              <td>Spécialiste Sécurisation &amp; Durcissement</td>
+              <td>KPEGBE Uriel</td>
+            </tr>
+            <tr>
+              <td>Spécialiste Collecte, Ingestion &amp; Sondes</td>
+              <td>AGBO Ognankitan Eliézer</td>
+            </tr>
+            <tr>
+              <td>Spécialiste Métrologie &amp; Dashboards</td>
+              <td>AVOCETIEN Karol</td>
+            </tr>
+            <tr>
+              <td>Responsable Alerting &amp; Notifications</td>
+              <td>DIMON Anaël</td>
+            </tr>
+            <tr>
+              <td>Spécialiste Détection &amp; Scénarios d'Attaque</td>
+              <td>OKPEIFA Yves Dieudonné</td>
+            </tr>
+          </tbody>
+        </table>
+        <p>Enseignant : <strong>M. Abousidikou ODJO</strong></p>
+      </div>
+
+    </main>
+
+    <!-- ===  SIDEBAR  === -->
+    <aside class="sidebar">
+      <button class="sidebar-toggle" onclick="this.closest('.sidebar').classList.remove('open')"
+        title="Fermer">&times;</button>
+
+      <div class="sidebar-section">
+        <h3>Table des matières</h3>
+        <ul>
+          <li><a href="#contexte">Contexte &amp; Justification</a></li>
+          <li><a href="#missions">Missions clés</a></li>
+          <li class="level2"><a href="#regles">Règles personnalisées</a></li>
+          <li><a href="#epreuve">Épreuve du feu</a></li>
+          <li><a href="#equipe">Équipe</a></li>
+        </ul>
+      </div>
+
+      <div class="sidebar-section">
+        <h3>Outils de la page</h3>
+        <ul>
+          <li><a href="search.html">Recherche</a></li>
+          <li><a href="login.html">Connexion</a></li>
+        </ul>
+      </div>
+
+      <div class="sidebar-section">
+        <h3>Outils du site</h3>
+        <ul>
+          <li><a href="index.html">Accueil</a></li>
+        </ul>
+      </div>
+
+      <div class="sidebar-section">
+        <h3>Divers</h3>
+        <ul>
+          <li>Suricata 7.x</li>
+          <li>EveBox</li>
+          <li>Docker Compose</li>
+          <li>Emerging Threats</li>
+        </ul>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- ===  FOOTER  === -->
+  <footer>
+    <p>Contributeurs : TOVIGNAN, KPEGBE, AGBO, AVOCETIEN, DIMON, OKPEIFA</p>
+    <p>Dernière modification : 23/11/2026 - Groupe 2 · Sécurité Réseau &amp; Monitoring</p>
+  </footer>
+
 </body>
+
 </html>
