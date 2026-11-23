@@ -118,12 +118,12 @@ Les alertes apparaissent aussitôt dans EveBox et déclenchent une notification 
 
 | Rôle | Membre |
 |---|---|
-| Architecte Déploiement, DevSecOps, IaC (chef d'équipe) | TOVIGNAN Kouassi Félix|
-| Spécialiste Sécurisation & Durcissement | _______________  |
-| Spécialiste Collecte, Ingestion & Sondes | _______________ |
-| Spécialiste Métrologie & Dashboards |_______________ |
-| Responsable Alerting & Notifications | _______________  |
-| Spécialiste Détection & Scénarios d'Attaque | _______________  |
+| Architecte Déploiement, DevSecOps, IaC (chef d'équipe) | TOVIGNAN Kouassi Félix |
+| Spécialiste Sécurisation & Durcissement | KPEGBE Uriel |
+| Spécialiste Collecte, Ingestion & Sondes | AGBO Ognankitan Eliézer |
+| Spécialiste Métrologie & Dashboards | AVOCETIEN Karol |
+| Responsable Alerting & Notifications | DIMON Anaël |
+| Spécialiste Détection & Scénarios d'Attaque | OKPEIFA Yves Dieudonné |
 
 Enseignant : M. Abousidikou ODJO
 
