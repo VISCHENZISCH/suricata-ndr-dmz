@@ -27,15 +27,17 @@ Ce projet déploie une zone DMZ simulée (`172.20.0.0/24`) composée d'un portai
 ## Architecture
 
 ```
-   ┌──────────────────────────────────────────────────────────────────┐
-   │                    Réseau DMZ (172.20.0.0/24)                    │
-   │                                                                  │
-   │   web (172.20.0.10) ── /api/* ──▶ api (172.20.0.12) ──▶ db (.11) │
-   │    Nginx :8082                    FastAPI (interne)    Postgres  │
-   │                                                                  │
-   │   evebox (172.20.0.14) ◀── volume suricata-logs (eve.json)       │
-   │    Console :5636 (SQLite + auth)                                 │
-   └──────────────────────────────────────────────────────────────────┘
+                      réseau DMZ (172.20.0.0/24)
+        ┌──────────────────┼──────────────────┐
+        │                  │                  │
+        ▼                  ▼                  ▼
+       web ── /api/* ───▶ api ─────────────▶ db
+     (nginx)           (FastAPI)          (postgres)
+     :8082
+
+                       ┌────────┐
+      eve.json ──────▶ │ EveBox │ :5636 (SQLite + auth)
+                       └────────┘
 ```
 
 ## Démarrage rapide
