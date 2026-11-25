@@ -54,7 +54,7 @@ html {
 }
 
 body {
-  width: calc(100% - 30%);
+  width: 100%;
   min-height: 100vh;
   margin: 0 auto;
   padding: 0;
@@ -814,6 +814,7 @@ body>footer p {
   padding: 0 .6rem;
   white-space: nowrap;
 }
+
 .nav-logout {
   font-size: .82rem;
   font-weight: 700;
@@ -824,6 +825,7 @@ body>footer p {
   border-radius: 6px;
   transition: background .15s, color .15s;
 }
+
 .nav-logout:hover {
   background: var(--accent);
   color: #fff;
