@@ -49,10 +49,13 @@ Suricata partage l'espace réseau du serveur web pour observer tout le trafic qu
 ```bash
 git clone https://github.com/VISCHENZISCH/suricata-ndr-dmz.git && cd suricata-ndr-dmz
 cp .env.example .env        # puis définir des mots de passe forts
-docker compose up -d
+docker compose up -d --build
 ```
 
 **Prérequis :** Docker 24+, Docker Compose v2, environ 2 Go de RAM libres, Linux ou WSL2.
+**web :** ```bash 
+http://127.0.0.1:8082
+```
 
 ## Services
 
