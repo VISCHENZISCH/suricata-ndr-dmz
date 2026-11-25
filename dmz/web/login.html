@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Connexion - Portail DMZ - Groupe 2</title>
+  <title>Connexion - Portail Suricata NDR</title>
   <link rel="stylesheet" href="style.css">
 </head>
 
@@ -12,22 +12,11 @@
 
   <!-- ===  HEADER  === -->
   <header>
-    <div class="topbar">
-      <a href="index.html" class="logo-link">
-        <img src="Logo cyber NDR DMZ Suricata futuriste.png" alt="Logo" onerror="this.style.display='none'">
-        <span class="site-title">Suricata <span class="accent">NDR</span> · DMZ</span>
-      </a>
-      <div class="topbar-right">
-        <button class="theme-toggle" onclick="document.documentElement.classList.toggle('dark')"
-          title="Basculer le thème">&#9681;</button>
-        <button class="menu-toggle" onclick="document.querySelector('.navbar').classList.toggle('open')"
-          title="Menu">&#9776;</button>
-      </div>
-    </div>
+    <button class="menu-toggle" onclick="document.querySelector('.navbar').classList.toggle('open')"
+      title="Menu">&#9776;</button>
     <nav class="navbar">
       <a href="index.html">Accueil</a>
       <a href="dashboard.html">Dashboard</a>
-      <a href="search.html">Recherche</a>
       <a href="login.html" class="active">Connexion</a>
       <a href="register.html">Inscription</a>
     </nav>
@@ -38,26 +27,22 @@
 
     <main>
       <div class="tags">
-        <span class="tag">Authentification</span>
-        <span class="tag">Accès restreint</span>
-        <span class="tag">DMZ</span>
+        <span class="tag">Connexion</span>
+        <span class="tag">Espace membre</span>
       </div>
 
-      <h1>Connexion opérateur</h1>
+      <h1>Connexion</h1>
 
-      <div class="section">
-        <h2>Identification</h2>
-
+      <div class="section" style="margin-top: 0; border-top: 0; padding-top: 0;">
         <div class="note info">
-          <p>L'accès à cette interface est réservé aux opérateurs autorisés du groupe 2.
-            Toute tentative de connexion est journalisée et supervisée par Suricata.</p>
+          <p>Connectez-vous avec votre adresse e-mail et votre mot de passe pour accéder à votre espace personnel.</p>
         </div>
 
-        <form method="POST" action="/login" style="max-width: 400px;">
+        <form method="POST" action="/api/login" style="max-width: 420px;">
           <div class="form-group">
-            <label class="form-label" for="username">Identifiant opérateur</label>
-            <input type="text" id="username" name="username" placeholder="ex : admin_secu" required autofocus
-              autocomplete="username">
+            <label class="form-label" for="email">Adresse e-mail</label>
+            <input type="email" id="email" name="email" placeholder="exemple@domaine.com" required autofocus
+              autocomplete="email">
           </div>
           <div class="form-group">
             <label class="form-label" for="password">Mot de passe</label>
@@ -67,28 +52,23 @@
           </div>
           <div class="flex-row" style="margin-top: 1rem;">
             <button type="submit" class="btn">Se connecter</button>
-            <a href="register.html" style="font-size: .85rem; font-weight: 700;">Demander un accès</a>
+            <a href="register.html" style="font-size: .88rem; font-weight: 700;">Créer un compte</a>
           </div>
         </form>
       </div>
     </main>
 
     <!-- ===  SIDEBAR  === -->
-    <aside class="sidebar">
-      <div class="sidebar-section">
-        <h3>Outils de la page</h3>
-        <ul>
-          <li><a href="index.html">Retour à l'accueil</a></li>
-          <li><a href="search.html">Recherche</a></li>
-        </ul>
-      </div>
+    <aside class="sidebar" id="controls">
+      <button class="sidebar-toggle" onclick="this.closest('.sidebar').classList.remove('open')"
+        title="Fermer">&times;</button>
 
       <div class="sidebar-section">
-        <h3>Divers</h3>
+        <h3>Navigation</h3>
         <ul>
-          <li>Suricata 7.x</li>
-          <li>EveBox</li>
-          <li>Accès supervisé</li>
+          <li><a href="index.html">Accueil</a></li>
+          <li><a href="dashboard.html">Ressources d'apprentissage</a></li>
+          <li><a href="register.html">Inscription</a></li>
         </ul>
       </div>
     </aside>
@@ -97,9 +77,10 @@
 
   <!-- ===  FOOTER  === -->
   <footer>
-    <p>Portail DMZ · Groupe 2 - Accès sécurisé et supervisé par Suricata</p>
+    <p>Portail Suricata NDR · Espace public</p>
   </footer>
 
+<script src="auth.js"></script>
 </body>
 
 </html>

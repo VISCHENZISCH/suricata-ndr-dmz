@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Demande d'accès opérateur (Inscription) - Portail DMZ</title>
+  <title>Inscription - Portail Suricata NDR</title>
   <link rel="stylesheet" href="style.css">
 </head>
 
@@ -12,22 +12,11 @@
 
   <!-- ===  HEADER  === -->
   <header>
-    <div class="topbar">
-      <a href="index.html" class="logo-link">
-        <img src="Logo cyber NDR DMZ Suricata futuriste.png" alt="Logo" onerror="this.style.display='none'">
-        <span class="site-title">Suricata <span class="accent">NDR</span> · DMZ</span>
-      </a>
-      <div class="topbar-right">
-        <button class="theme-toggle" onclick="document.documentElement.classList.toggle('dark')"
-          title="Basculer le thème">&#9681;</button>
-        <button class="menu-toggle" onclick="document.querySelector('.navbar').classList.toggle('open')"
-          title="Menu">&#9776;</button>
-      </div>
-    </div>
+    <button class="menu-toggle" onclick="document.querySelector('.navbar').classList.toggle('open')"
+      title="Menu">&#9776;</button>
     <nav class="navbar">
       <a href="index.html">Accueil</a>
       <a href="dashboard.html">Dashboard</a>
-      <a href="search.html">Recherche</a>
       <a href="login.html">Connexion</a>
       <a href="register.html" class="active">Inscription</a>
     </nav>
@@ -39,128 +28,54 @@
     <main>
       <div class="tags">
         <span class="tag">Inscription</span>
-        <span class="tag">Opérateur</span>
-        <span class="tag">Accès DMZ</span>
-        <span class="tag">Sécurité</span>
+        <span class="tag">Nouveau compte</span>
       </div>
 
-      <h1>Demande d'accès opérateur</h1>
+      <h1>Créer un compte</h1>
 
-      <div class="section" id="contexte">
-        <h2>Politique d'habilitation</h2>
+      <div class="section" style="margin-top: 0; border-top: 0; padding-top: 0;">
         <div class="note info">
-          <p>L'accès à l'infrastructure DMZ et aux outils de supervision (EveBox, sondes Suricata) est strictement
-            restreint aux membres du groupe projet et aux auditeurs habilités. Chaque compte est nominatif et rattaché à
-            une responsabilité définie.</p>
+          <p>Inscrivez-vous librement avec votre adresse e-mail pour accéder aux ressources pédagogiques du portail.</p>
         </div>
-      </div>
 
-      <div class="section" id="formulaire">
-        <h2>Formulaire d'enregistrement</h2>
-
-        <form method="POST" action="/register" style="max-width: 600px;">
+        <form method="POST" action="/api/register" style="max-width: 440px;">
           <div class="form-group">
-            <label class="form-label" for="fullname">Nom et prénom</label>
-            <input type="text" id="fullname" name="fullname" placeholder="ex : Kouassi Félix TOVIGNAN" required
-              autocomplete="name">
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="username">Identifiant opérateur souhaité</label>
-            <input type="text" id="username" name="username" placeholder="ex : ktovignan_secu" required
-              autocomplete="username">
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="email">Adresse email institutionnelle</label>
-            <input type="email" id="email" name="email" placeholder="ex : operateur@univ-dmz.lan" required
+            <label class="form-label" for="email">Adresse e-mail</label>
+            <input type="email" id="email" name="email" placeholder="exemple@domaine.com" required autofocus
               autocomplete="email">
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="role">Rôle assigné dans le projet</label>
-            <select id="role" name="role" required>
-              <option value="" disabled selected>Sélectionner un rôle...</option>
-              <option value="devsecops">Architecte Déploiement & DevSecOps (Chef d'équipe)</option>
-              <option value="hardening">Spécialiste Sécurisation & Durcissement</option>
-              <option value="probes">Spécialiste Collecte, Ingestion & Sondes</option>
-              <option value="metrics">Spécialiste Métrologie & Dashboards</option>
-              <option value="alerting">Responsable Alerting & Notifications</option>
-              <option value="detection">Spécialiste Détection & Scénarios d'Attaque</option>
-              <option value="auditor">Auditeur / Enseignant (Accès lecture seule)</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="justification">Justification du besoin d'en connaître</label>
-            <textarea id="justification" name="justification"
-              placeholder="Précisez le cadre de vos interventions dans la zone DMZ..."></textarea>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="password">Mot de passe opérateur</label>
+            <label class="form-label" for="password">Mot de passe</label>
             <input type="password" id="password" name="password"
-              placeholder="12 caractères minimum (majuscules, chiffres, symboles)" required autocomplete="new-password">
+              placeholder="8 caractères minimum" required autocomplete="new-password">
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="password_confirm">Confirmation du mot de passe</label>
+            <label class="form-label" for="password_confirm">Confirmer le mot de passe</label>
             <input type="password" id="password_confirm" name="password_confirm"
-              placeholder="Confirmez votre mot de passe" required autocomplete="new-password">
+              placeholder="Ressaisissez votre mot de passe" required autocomplete="new-password">
           </div>
 
-          <div class="form-group" style="margin-top: 1rem;">
-            <label
-              style="display: flex; align-items: flex-start; gap: .6rem; font-size: .85rem; color: var(--texte); cursor: pointer;">
-              <input type="checkbox" name="accept_terms" required style="width: auto; margin-top: .2rem;">
-              <span>J'atteste avoir pris connaissance de la charte de sécurité DMZ et accepte que l'ensemble de mes flux
-                et requêtes soient journalisés sous format standard <code>eve.json</code> par la sonde Suricata.</span>
-            </label>
-          </div>
-
-          <div class="flex-row" style="margin-top: 1.5rem;">
-            <button type="submit" class="btn">Soumettre la demande</button>
-            <a href="login.html" style="font-size: .85rem; font-weight: 700;">Déjà habilité ? Se connecter</a>
+          <div class="flex-row" style="margin-top: 1.25rem;">
+            <button type="submit" class="btn">S'inscrire</button>
+            <a href="login.html" style="font-size: .88rem; font-weight: 700;">Déjà inscrit ? Se connecter</a>
           </div>
         </form>
-      </div>
-
-      <div class="section" id="securite">
-        <h2>Règles de sécurité</h2>
-        <div class="note warning">
-          <p>Toute tentative de manipulation frauduleuse du formulaire (injections SQL, contournement
-            d'authentification) sera instantanément interceptée par les signatures locales de Suricata et déclenchera
-            une alerte de sévérité 1 dans EveBox.</p>
-        </div>
       </div>
     </main>
 
     <!-- ===  SIDEBAR  === -->
-    <aside class="sidebar">
-      <div class="sidebar-section">
-        <h3>Table des matières</h3>
-        <ul>
-          <li><a href="#contexte">Politique d'habilitation</a></li>
-          <li><a href="#formulaire">Formulaire d'enregistrement</a></li>
-          <li><a href="#securite">Règles de sécurité</a></li>
-        </ul>
-      </div>
+    <aside class="sidebar" id="controls">
+      <button class="sidebar-toggle" onclick="this.closest('.sidebar').classList.remove('open')"
+        title="Fermer">&times;</button>
 
       <div class="sidebar-section">
-        <h3>Outils de la page</h3>
+        <h3>Navigation</h3>
         <ul>
-          <li><a href="login.html">Connexion opérateur</a></li>
-          <li><a href="dashboard.html">Tableau de bord</a></li>
-          <li><a href="index.html">Page d'accueil</a></li>
-        </ul>
-      </div>
-
-      <div class="sidebar-section">
-        <h3>Prérequis d'accès</h3>
-        <ul>
-          <li>IP source autorisée (DMZ)</li>
-          <li>Mots de passe conformes</li>
-          <li>Validation par le chef d'équipe</li>
+          <li><a href="index.html">Accueil</a></li>
+          <li><a href="dashboard.html">Ressources d'apprentissage</a></li>
+          <li><a href="login.html">Connexion</a></li>
         </ul>
       </div>
     </aside>
@@ -169,9 +84,10 @@
 
   <!-- ===  FOOTER  === -->
   <footer>
-    <p>Portail DMZ · Groupe 2 - Sécurité Réseau &amp; Monitoring NIDS</p>
+    <p>Portail Suricata NDR · Espace public</p>
   </footer>
 
+<script src="auth.js"></script>
 </body>
 
 </html>

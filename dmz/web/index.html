@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Suricata & EveBox - NDR / NIDS - Groupe 2</title>
+  <title>Suricata &amp; EveBox - NDR / NIDS - Groupe 2</title>
   <link rel="stylesheet" href="style.css">
 </head>
 
@@ -12,22 +12,11 @@
 
   <!-- ===  HEADER  === -->
   <header>
-    <div class="topbar">
-      <a href="index.html" class="logo-link">
-        <img src="Logo cyber NDR DMZ Suricata futuriste.png" alt="Logo" onerror="this.style.display='none'">
-        <span class="site-title">Suricata <span class="accent">NDR</span> · DMZ</span>
-      </a>
-      <div class="topbar-right">
-        <button class="theme-toggle" onclick="document.documentElement.classList.toggle('dark')"
-          title="Basculer le thème">&#9681;</button>
-        <button class="menu-toggle" onclick="document.querySelector('.navbar').classList.toggle('open')"
-          title="Menu">&#9776;</button>
-      </div>
-    </div>
+    <button class="menu-toggle" onclick="document.querySelector('.navbar').classList.toggle('open')"
+      title="Menu">&#9776;</button>
     <nav class="navbar">
       <a href="index.html" class="active">Accueil</a>
       <a href="dashboard.html">Dashboard</a>
-      <a href="search.html">Recherche</a>
       <a href="login.html">Connexion</a>
       <a href="register.html">Inscription</a>
     </nav>
@@ -37,8 +26,7 @@
   <div class="page-body">
 
     <main>
-      <!-- Tags -->
-      <div class="tags">
+      <div class="tags" aria-label="Technologies du projet">
         <span class="tag">NIDS</span>
         <span class="tag">Suricata</span>
         <span class="tag">EveBox</span>
@@ -48,10 +36,15 @@
         <span class="tag">Alerting</span>
       </div>
 
-      <h1>Groupe 2 - Suricata (+ EveBox) : Détection &amp; Analyse de Trafic Réseau (NDR / NIDS)</h1>
+      <h1>Suricata &amp; EveBox : Détection &amp; Analyse de Trafic Réseau (NDR / NIDS)</h1>
+
+      <div class="note tip">
+        <p>Portail de supervision du <strong>Groupe 2</strong>. Suricata inspecte le trafic réseau de la zone DMZ en
+          temps réel et EveBox centralise chaque événement au format <code>eve.json</code>.</p>
+      </div>
 
       <!-- Introduction -->
-      <div class="section">
+      <div class="section" id="contexte">
         <h2>Contexte &amp; Justification</h2>
         <p>
           En cours, nous avons analysé des paquets avec <code>tcpdump</code> et supervisé le réseau via
@@ -62,13 +55,13 @@
       </div>
 
       <!-- Missions clés -->
-      <div class="section">
+      <div class="section" id="missions">
         <h2>Missions clés</h2>
         <ul>
           <li><strong>Déployer Suricata</strong> en mode écoute sur un sous-réseau Docker simulant une zone DMZ.</li>
           <li><strong>Mettre à jour et configurer</strong> les règles de détection communautaires Emerging Threats (ET
             Open).</li>
-          <li><strong>Concevoir au moins 3 signatures</strong> de règles personnalisées :
+          <li id="regles"><strong>Concevoir au moins 3 signatures</strong> de règles personnalisées :
             <ul>
               <li>Détection d'une chaîne malveillante dans une requête HTTP.</li>
               <li>Détection d'un User-Agent pirate.</li>
@@ -81,7 +74,7 @@
       </div>
 
       <!-- Épreuve du feu -->
-      <div class="section">
+      <div class="section" id="epreuve">
         <h2>Épreuve du feu</h2>
         <p>Script <code>scenario.sh</code> exécuté depuis un conteneur attaquant :</p>
         <ol>
@@ -93,7 +86,7 @@
       </div>
 
       <!-- Équipe -->
-      <div class="section">
+      <div class="section" id="equipe">
         <h2>Équipe</h2>
         <table>
           <thead>
@@ -135,7 +128,7 @@
     </main>
 
     <!-- ===  SIDEBAR  === -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="controls">
       <button class="sidebar-toggle" onclick="this.closest('.sidebar').classList.remove('open')"
         title="Fermer">&times;</button>
 
@@ -153,8 +146,9 @@
       <div class="sidebar-section">
         <h3>Outils de la page</h3>
         <ul>
-          <li><a href="search.html">Recherche</a></li>
+          <li><a href="dashboard.html">Tableau de bord</a></li>
           <li><a href="login.html">Connexion</a></li>
+          <li><a href="register.html">Inscription</a></li>
         </ul>
       </div>
 
@@ -181,9 +175,10 @@
   <!-- ===  FOOTER  === -->
   <footer>
     <p>Contributeurs : TOVIGNAN, KPEGBE, AGBO, AVOCETIEN, DIMON, OKPEIFA</p>
-    <p>Dernière modification : 23/11/2026 - Groupe 2 · Sécurité Réseau &amp; Monitoring</p>
+    <p>Dernière modification : 25/11/2026 · Groupe 2 · Sécurité Réseau &amp; Monitoring</p>
   </footer>
 
+<script src="auth.js"></script>
 </body>
 
 </html>
