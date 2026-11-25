@@ -30,7 +30,7 @@ app.add_middleware(
     allow_credentials=True,
 )
 
-# Sessions en mémoire : {token: {"email": ..., "username": ..., "role": ...}}
+# Sessions memory : {token: {"email": ..., "username": ...}}
 SESSIONS: dict[str, dict] = {}
 
 
@@ -53,14 +53,14 @@ def verify_password(password: str, stored: str) -> bool:
     return hashlib.sha256(f"{salt}{password}".encode()).hexdigest() == h
 
 
-# ── Health ──────────────────────────────────────────────
+# Check Health
 @app.get("/api/health")
 def health(db: Session = Depends(get_db)):
     db.execute(text("SELECT 1"))
     return {"status": "ok", "db": "up"}
 
 
-# ── Qui suis-je ? ──────────────────────────────────────
+# Whoami
 @app.get("/api/me")
 def me(request: Request):
     token = request.cookies.get("session")
@@ -69,7 +69,7 @@ def me(request: Request):
     return SESSIONS[token]
 
 
-# ── Inscription ─────────────────────────────────────────
+# Register
 @app.post("/api/register")
 def register(
     email: str = Form(...),
@@ -100,7 +100,7 @@ def register(
     return RedirectResponse(url="/login.html", status_code=303)
 
 
-# ── Connexion ───────────────────────────────────────────
+# Login
 @app.post("/api/login")
 def login(
     response: Response,
@@ -109,14 +109,14 @@ def login(
     db: Session = Depends(get_db),
 ):
     row = db.execute(
-        text("SELECT password_hash, username, role FROM users WHERE email = :e"),
+        text("SELECT password_hash, username FROM users WHERE email = :e"),
         {"e": email},
     ).fetchone()
     if not row or not verify_password(password, row[0]):
         raise HTTPException(401, "E-mail ou mot de passe incorrect.")
 
     token = secrets.token_hex(32)
-    SESSIONS[token] = {"email": email, "username": row[1], "role": row[2]}
+    SESSIONS[token] = {"email": email, "username": row[1]}
 
     redirect = RedirectResponse(url="/dashboard.html", status_code=303)
     redirect.set_cookie(
@@ -129,7 +129,7 @@ def login(
     return redirect
 
 
-# ── Déconnexion ─────────────────────────────────────────
+# Logout
 @app.post("/api/logout")
 def logout(request: Request):
     token = request.cookies.get("session")
