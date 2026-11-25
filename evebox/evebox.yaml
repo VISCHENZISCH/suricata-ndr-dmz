@@ -1,0 +1,24 @@
+# Configuration EveBox Groupe 2 (Suricata NDR / DMZ)
+data-directory: /var/lib/evebox
+
+http:
+  host: "0.0.0.0"
+  port: 5636
+  tls:
+    # Exposé uniquement sur 127.0.0.1 (passer à true si accès HTTPS direct)
+    enabled: false
+
+authentication:
+  required: true
+  type: usernamepassword
+
+database:
+  type: sqlite
+  retention:
+    days: 7
+
+input:
+  enabled: true
+  paths:
+    - "/var/log/suricata/eve.json"
+    - "/var/log/suricata/eve.*.json"
