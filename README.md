@@ -10,8 +10,8 @@
   <img src="https://img.shields.io/badge/EveBox-Alert%20Console-1E88E5?style=for-the-badge" alt="EveBox">
   <img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
   <img src="https://img.shields.io/badge/Nginx-Cible%20Web-009639?style=for-the-badge&logo=nginx&logoColor=white" alt="Nginx">
+  <img src="https://img.shields.io/badge/FastAPI-API%20Interne-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI">
   <img src="https://img.shields.io/badge/PostgreSQL-Cible%20DB-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL">
-  <img src="https://img.shields.io/badge/Grafana-Dashboards-F46800?style=for-the-badge&logo=grafana&logoColor=white" alt="Grafana">
 </p>
 
 <p align="center">
@@ -22,27 +22,21 @@
 
 ## Aperçu
 
-Ce projet déploie un NIDS **Suricata** qui inspecte en temps réel le trafic d'une DMZ simulée (serveur web + base de données). Les alertes sont centralisées, classées par sévérité et acquittées dans **EveBox**. Un conteneur attaquant rejoue un scénario d'attaque réaliste pour prouver la détection en direct.
+Ce projet déploie une zone DMZ simulée (`172.20.0.0/24`) composée d'un portail web Nginx, d'une API FastAPI interne et d'une base PostgreSQL, supervisée par **Suricata** et la console d'alertes **EveBox** (backend SQLite).
 
 ## Architecture
 
 ```
-                 ┌────────────┐
-                 │  attacker  │  nmap · sqlmap · dig
-                 └─────┬──────┘
-                       │  réseau DMZ (172.20.0.0/24)
-        ┌──────────────┼───────────────┐
-        │              │               │
-        ▼              ▼               ▼
-       web             db           suricata  ── eve.json ──┐
-     (nginx)        (postgres)       (NIDS)                 │
-                                                            ▼
-                             ┌─────────┐   ┌──────────┐  ┌────────┐
-                               Mailpit  ◄──  alerting  ◄─  EveBox  
-                             └─────────┘   └──────────┘  └────────┘
+   ┌──────────────────────────────────────────────────────────────────┐
+   │                    Réseau DMZ (172.20.0.0/24)                    │
+   │                                                                  │
+   │   web (172.20.0.10) ── /api/* ──▶ api (172.20.0.12) ──▶ db (.11) │
+   │    Nginx :8082                    FastAPI (interne)    Postgres  │
+   │                                                                  │
+   │   evebox (172.20.0.14) ◀── volume suricata-logs (eve.json)       │
+   │    Console :5636 (SQLite + auth)                                 │
+   └──────────────────────────────────────────────────────────────────┘
 ```
-
-Suricata partage l'espace réseau du serveur web pour observer tout le trafic qui lui est destiné.
 
 ## Démarrage rapide
 
@@ -53,69 +47,59 @@ docker compose up -d --build
 ```
 
 **Prérequis :** Docker 24+, Docker Compose v2, environ 2 Go de RAM libres, Linux ou WSL2.
-**web :** ```bash 
-http://127.0.0.1:8082
-```
 
-## Services
+## Services déployés
 
-| Service | Rôle | Accès |
-|---|---|---|
-| EveBox | Console d'alertes | http://127.0.0.1:5636 |
-| Grafana | Dashboards Direction / Exploitation | http://127.0.0.1:3000 |
-| Mailpit | Réception des notifications e-mail | http://127.0.0.1:8025 |
-| web / db | Infrastructure cible supervisée | Réseau DMZ uniquement |
-| attacker | Génération des attaques | `docker compose exec attacker bash` |
+| Service | Rôle | IP DMZ | Accès hôte |
+|---|---|---|---|
+| `web` | Portail Nginx + reverse proxy `/api/` | `172.20.0.10` | http://127.0.0.1:8082 |
+| `db` | Base de données PostgreSQL 16 (`g2db`) | `172.20.0.11` | Réseau DMZ uniquement |
+| `api` | API FastAPI (auth, sessions, santé DB) | `172.20.0.12` | Réseau DMZ uniquement |
+| `evebox` | Console d'alertes EveBox (SQLite) | `172.20.0.14` | http://127.0.0.1:5636 |
 
-Les identifiants sont définis dans `.env` : aucun compte par défaut n'est utilisé.
+Les identifiants (PostgreSQL et EveBox) sont définis dans `.env` : aucun compte par défaut n'est utilisé.
 
-## Règles de détection
+### Authentification du portail web (`web` + `api`)
 
-- **ET Open** : jeu de règles communautaire Emerging Threats, mis à jour via `suricata/update-rules.sh`.
-- **Règles personnalisées** (`suricata/rules/local.rules`) :
+- Inscription (`/register.html` → `POST /api/register`) et connexion (`/login.html` → `POST /api/login`) stockées dans PostgreSQL (`users`).
+- Session gérée par cookie `HttpOnly` ; l'accès à `dashboard.html` est bloqué si non connecté et l'e-mail connecté s'affiche dans la barre de navigation.
 
-| SID | Détection |
-|---|---|
-| 1000001 | Injection SQL (`UNION SELECT`) dans une requête HTTP |
-| 1000002 | User-Agent d'outil d'attaque (`sqlmap`) |
-| 1000003 | Volume anormal de requêtes DNS (tunnel DNS) |
+### Console d'alertes (`evebox`)
 
-Validation de la configuration : `docker compose exec suricata suricata -T -c /etc/suricata/suricata.yaml`
-
-## Épreuve du feu
-
-```bash
-docker compose exec attacker ./scenario.sh
-```
-
-Le scénario enchaîne :
-
-1. Scan de ports Nmap (SYN, détection de versions)
-2. Injection SQL et traversée de répertoires contre le serveur web
-3. Tentative d'exfiltration par tunnel DNS
-
-Les alertes apparaissent aussitôt dans EveBox et déclenchent une notification Mailpit.
+- Backend **SQLite** léger avec rétention de 7 jours (`evebox/evebox.yaml`).
+- Utilisateur créé automatiquement au premier démarrage via `evebox/entrypoint.sh` à partir de `EVEBOX_USER` et `EVEBOX_PASSWORD` (`.env`).
 
 ## Durcissement
 
-- Aucun identifiant par défaut, secrets gérés via `.env` (jamais versionné)
-- Interfaces d'administration exposées sur `127.0.0.1` uniquement
-- Authentification activée sur EveBox et Grafana
-- Images à version fixée, `no-new-privileges`, capabilities réduites au strict nécessaire
-- Configurations, règles et dashboards persistés et versionnés (Monitoring as Code)
+- Aucun identifiant par défaut ; secrets gérés via `.env` (exclu de Git via `.gitignore`, modèle dans `.env.example`)
+- Interfaces exposées uniquement sur `127.0.0.1` (`8082` pour `web`, `5636` pour `evebox`) ; `api` et `db` isolés dans la DMZ
+- Images à version fixée (`nginx:1.27-alpine`, `postgres:16-alpine`, `python:3.12-slim`, `jasonish/evebox:0.32.0`)
+- `no-new-privileges: true` sur tous les services, `read_only: true` sur `web` et `api`
 
 ## Structure du dépôt
 
 ```
-├── docker-compose.yml
-├── .env.example
-├── suricata/        configuration, règles, mise à jour ET Open
-├── evebox/          configuration et création de l'utilisateur
-├── dmz/             cibles supervisées (web, db)
-├── attacker/        image attaquant et scenario.sh
-├── notifications/   Mailpit / webhook
-└── docs/            schémas, captures, rapport, documentations
+├── docker-compose.yml       orchestration des services DMZ
+├── .env.example             modèle des variables d'environnement
+├── dmz/
+│   ├── web/                 frontend HTML/CSS/JS + nginx.conf (reverse proxy)
+│   ├── api/                 API FastAPI (Dockerfile, requirements.txt, app/main.py)
+│   └── db/                  init.sql (schéma PostgreSQL)
+├── evebox/                  evebox.yaml + entrypoint.sh (SQLite + auth)
+├── suricata/                configuration, règles locales et mise à jour ET Open (à venir)
+├── attacker/                conteneur attaquant et scenario.sh (à venir)
+├── notifications/           alerting / Mailpit (à venir)
+└── docs/                    cahier des charges, guide et ressources
 ```
+
+## Feuille de route (en cours)
+
+- [x] Zone DMZ applicative (`web`, `api`, `db`) avec reverse proxy et authentification
+- [x] Console d'alertes `evebox` (SQLite, authentification depuis `.env`)
+- [ ] Sonde NIDS `suricata` (`suricata.yaml`, règles custom `local.rules`, ET Open)
+- [ ] Dashboards `Grafana` + `Loki` (Vue Direction & Vue Exploitation)
+- [ ] Alerting et notifications (`Mailpit` / webhook)
+- [ ] Conteneur `attacker` et scénario d'attaque (`scenario.sh`)
 
 ## Équipe
 

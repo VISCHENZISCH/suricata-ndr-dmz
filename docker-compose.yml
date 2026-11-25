@@ -90,5 +90,36 @@ services:
       timeout: 3s
       retries: 5
     restart: unless-stopped
+  #*****************************************
+  #     Console d'alertes EveBox
+  #*****************************************
+  evebox:
+    image: jasonish/evebox:0.32.0
+    container_name: g2-evebox
+    hostname: evebox
+    networks:
+      dmz:
+        ipv4_address: 172.20.0.14
+    ports:
+      - "127.0.0.1:5636:5636"
+    environment:
+      EVEBOX_USER: ${EVEBOX_USER}
+      EVEBOX_PASSWORD: ${EVEBOX_PASSWORD}
+    volumes:
+      - ./evebox/evebox.yaml:/etc/evebox/evebox.yaml:ro
+      - ./evebox/entrypoint.sh:/usr/local/bin/evebox-entrypoint.sh:ro
+      - suricata-logs:/var/log/suricata:ro
+      - evebox-data:/var/lib/evebox
+    entrypoint: ["/bin/sh", "/usr/local/bin/evebox-entrypoint.sh"]
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5636/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 volumes:
   db-data:
+  suricata-logs:
+  evebox-data:
