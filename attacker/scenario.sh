@@ -123,8 +123,10 @@ banniere() {
     if [ -n "${NO_BANNER:-}" ]; then
         return 0
     fi
-    printf '\n\n%s' "$BRED"
-    cat <<'ART' | sed "s/\[NBK\]/${BGREEN}[NBK]${BRED}/"
+    c_logo="${1:-$BRED}"
+    c_tag="${2:-$BGREEN}"
+    printf '\n\n%s' "$c_logo"
+    cat <<'ART' | sed "s/^/$(printf ' \t')/; s/\[NBK\]/${c_tag}[NBK]${c_logo}/"
      NO!                          MNO!
      MNO!!         [NBK]          MNNOO!
    MMNO!                           MNNOO!!
@@ -367,13 +369,20 @@ cat <<EOF
 EOF
 
 
-# 7. Conclusion : vert si tout est passé, rouge sinon
+# 7. Conclusion 
 
-printf '%s%s%s\n' "$BGREEN" "$RULE" "$RESET"
 if [ "$ECHECS" -eq 0 ]; then
-    printf '  %s            [+] Scénario terminé avec succès.%s\n' "$BGREEN" "$RESET"
+    c_fin="$BGREEN"
+    c_tag="$BRED"
+    msg_fin="[+] Scénario terminé avec succès."
 else
-    printf '  %s            [-] Scénario terminé avec %s requête(s) sans réponse.%s\n' "$BRED" "$ECHECS" "$RESET"
+    c_fin="$BRED"
+    c_tag="$BGREEN"
+    msg_fin="[-] Scénario terminé avec ${ECHECS} requête(s) sans réponse."
 fi
-printf '%s%s%s\n' "$BGREEN" "$RULE" "$RESET"
+
+printf '%s%s%s\n' "$c_fin" "$RULE" "$RESET"
+printf '  %s         %s%s\n' "$c_fin" "$msg_fin" "$RESET"
+banniere "$c_fin" "$c_tag"
+printf '%s%s%s\n' "$c_fin" "$RULE" "$RESET"
 [ "$ECHECS" -eq 0 ]
