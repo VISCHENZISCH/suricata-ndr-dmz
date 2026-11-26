@@ -24,10 +24,11 @@ vars:
     FILE_DATA_SERVERS: "$HOME_NET"
 
   port-groups:
-    HTTP_PORTS: "80"
+    HTTP_PORTS: "[80,8000,5636]"
     SHELLCODE_PORTS: "!80"
     ORACLE_PORTS: "1521"
     SSH_PORTS: "22"
+    FTP_PORTS: "21"
     FILE_DATA_PORTS: "[$HTTP_PORTS,110,143]"
 
 default-log-dir: /var/log/suricata
@@ -127,6 +128,14 @@ app-layer:
       enabled: yes
     ssh:
       enabled: yes
+    dnp3:
+      enabled: yes
+      detection-ports:
+        dp: 20000
+    modbus:
+      enabled: yes
+      detection-ports:
+        dp: 502
 
 flow:
   memcap: 64mb

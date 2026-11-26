@@ -6,6 +6,29 @@
 # l'autre. On le localise par l'adresse de passerelle du reseau.
 set -eu
 
+BCYAN=$(printf '\033[1;96m')
+BGREEN=$(printf '\033[1;92m')
+BRED=$(printf '\033[1;91m')
+DIM=$(printf '\033[2m')
+RESET=$(printf '\033[0m')
+
+printf '\n\n%s' "$BCYAN"
+cat <<'ART'
+                  888                                       d8b          888    
+                  888                                       Y8P          888    
+                  888                                                    888    
+ .d88b.  88888b.  888888 888d888 888  888 88888b.   .d88b.  888 88888b.  888888 
+d8P  Y8b 888 "88b 888    888P"   888  888 888 "88b d88""88b 888 888 "88b 888    
+88888888 888  888 888    888     888  888 888  888 888  888 888 888  888 888    
+Y8b.     888  888 Y88b.  888     Y88b 888 888 d88P Y88..88P 888 888  888 Y88b.  
+ "Y8888  888  888  "Y888 888      "Y88888 88888P"   "Y88P"  888 888  888  "Y888 
+                                      888 888                                   
+                                 Y8b d88P 888                                   
+                                  "Y88P"  888                                   
+ART
+printf '%s  %sGroupe 2 · Sonde NDR Suricata (af-packet DMZ)%s\n\n\n' "$RESET" "$DIM" "$RESET"
+
+
 DMZ_GATEWAY="${DMZ_GATEWAY:-172.20.0.1}"
 IFACE="${SURICATA_IFACE:-}"
 
@@ -15,12 +38,12 @@ if [ -z "$IFACE" ]; then
 fi
 
 if [ -z "$IFACE" ]; then
-    echo "[suricata] Aucune interface ne porte ${DMZ_GATEWAY}." >&2
-    echo "[suricata] Le reseau DMZ est-il demarre (docker compose up -d) ?" >&2
+    printf '%s[suricata] Aucune interface ne porte %s.%s\n' "$BRED" "$DMZ_GATEWAY" "$RESET" >&2
+    printf '%s[suricata] Le reseau DMZ est-il demarre (docker compose up -d) ?%s\n' "$BRED" "$RESET" >&2
     exit 1
 fi
 
-echo "[suricata] Capture af-packet sur l'interface ${IFACE} (reseau ${DMZ_GATEWAY}/24)"
+printf '%s[suricata] Capture af-packet sur l interface %s (reseau %s/24)%s\n' "$BGREEN" "$IFACE" "$DMZ_GATEWAY" "$RESET"
 
 mkdir -p /var/log/suricata /var/run/suricata /var/lib/suricata/rules
 

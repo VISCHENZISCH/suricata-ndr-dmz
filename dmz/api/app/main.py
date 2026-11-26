@@ -1,6 +1,7 @@
 import os
 import hashlib
 import secrets
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, Form, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
@@ -19,7 +20,32 @@ DATABASE_URL = URL.create(
 engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 SessionLocal = sessionmaker(bind=engine, autoflush=False)
 
-app = FastAPI(title="G2 API")
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    bcyan = "\033[1;96m"
+    dim = "\033[2m"
+    reset = "\033[0m"
+    banner = (
+        "\n\n"
+        f"{bcyan}"
+        "                  d8b \n"
+        "                  Y8P \n"
+        "                      \n"
+        " 8888b.  88888b.  888 \n"
+        '    "88b 888 "88b 888 \n'
+        ".d888888 888  888 888 \n"
+        "888  888 888 d88P 888 \n"
+        '"Y888888 88888P"  888 \n'
+        "         888          \n"
+        "         888          \n"
+        "         888          \n"
+        f"{reset}  {dim}Groupe 2 · API FastAPI DMZ (PostgreSQL){reset}\n\n\n"
+    )
+    print(banner, flush=True)
+    yield
+
+
+app = FastAPI(title="G2 API", lifespan=lifespan)
 
 origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
 app.add_middleware(
