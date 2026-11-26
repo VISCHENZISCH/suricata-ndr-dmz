@@ -71,6 +71,8 @@ Script exécuté depuis le conteneur attaquant, dans l'ordre demandé :
 3. Tunnel DNS : beaucoup de requêtes à sous-domaines longs et aléatoires.
 4. Pause entre les étapes pour commenter en direct.
 
+Implémenté dans `attacker/scenario.sh`, lancé par `docker compose run --rm attacker`. Options : `--no-pause` (répétition automatisée), `--fast` (15 requêtes DNS), `--interactive` (attente d'Entrée). Le poste d'attaque est en `172.20.0.2`, hors de `HOME_NET`, et le profil Compose `attack` évite qu'il démarre avec la pile.
+
 ## 4. Les 3 règles personnalisées (point de départ)
 
 À adapter et à tester avec `suricata -T -c suricata.yaml` :

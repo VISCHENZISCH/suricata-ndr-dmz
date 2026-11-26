@@ -167,9 +167,9 @@ services:
       retries: 3
       start_period: 20s
     restart: unless-stopped
-  #*****************************************
+  #***********************************************
   #     Supervision : Promtail -> Loki -> Grafana
-  #*****************************************
+  #***********************************************
   loki:
     image: grafana/loki:3.2.0
     container_name: g2-loki
@@ -242,6 +242,36 @@ services:
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
+  #*****************************************
+  #     Conteneur attaquant (scénario)
+  #*****************************************
+  attacker:
+    build: ./attacker
+    image: g2/attacker:1.0
+    container_name: g2-attacker
+    hostname: attaquant
+    profiles: ["attack"]
+    networks:
+      dmz:
+        ipv4_address: 172.20.0.2
+    environment:
+      WEB_HOST: "172.20.0.10"
+      API_HOST: "172.20.0.12"
+      DB_HOST: "172.20.0.11"
+      EVEBOX_HOST: "172.20.0.14"
+      PAUSE_SECONDS: "4"
+      DNS_RESOLVER: ${DNS_RESOLVER:-}
+    depends_on:
+      web:
+        condition: service_started
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /root
+    cap_add:
+      - NET_RAW
+    security_opt:
+      - no-new-privileges:true
 volumes:
   db-data:
   suricata-logs:

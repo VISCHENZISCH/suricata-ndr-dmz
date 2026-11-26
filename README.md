@@ -12,6 +12,9 @@
   <img src="https://img.shields.io/badge/Nginx-Cible%20Web-009639?style=for-the-badge&logo=nginx&logoColor=white" alt="Nginx">
   <img src="https://img.shields.io/badge/FastAPI-API%20Interne-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI">
   <img src="https://img.shields.io/badge/PostgreSQL-Cible%20DB-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL">
+  <img src="https://img.shields.io/badge/Grafana-Dashboards-F46800?style=for-the-badge&logo=grafana&logoColor=white" alt="Grafana">
+  <img src="https://img.shields.io/badge/Loki-Log%20Aggregation-2C3239?style=for-the-badge&logo=grafana&logoColor=white" alt="Loki">
+  <img src="https://img.shields.io/badge/Mailpit-Alerting-4CAF50?style=for-the-badge" alt="Mailpit">
 </p>
 
 <p align="center">
@@ -22,22 +25,29 @@
 
 ## Aperçu
 
-Ce projet déploie une zone DMZ simulée (`172.20.0.0/24`) composée d'un portail web Nginx, d'une API FastAPI interne et d'une base PostgreSQL, supervisée par **Suricata** et la console d'alertes **EveBox** (backend SQLite).
+Ce projet déploie une zone DMZ simulée (`172.20.0.0/24`) composée d'un portail web Nginx, d'une API FastAPI interne et d'une base PostgreSQL, supervisée par **Suricata** (sonde NDR) et **EveBox** (console d'alertes). La pile de supervision **Grafana + Loki + Promtail** fournit deux dashboards (Direction et Exploitation) et cinq alertes (infra + sécu) notifiées par e-mail via **Mailpit**.
 
 ## Architecture
 
 ```
-                      réseau DMZ (172.20.0.0/24)
-        ┌──────────────────┼──────────────────┐
-        │                  │                  │
-        ▼                  ▼                  ▼
-       web ── /api/* ───▶ api ─────────────▶ db
-     (nginx)           (FastAPI)          (postgres)
-     :8082
+                        réseau DMZ (172.20.0.0/24)
+          ┌──────────────────┼──────────────────┐
+          │                  │                  │
+          ▼                  ▼                  ▼
+         web ── /api/* ───▶ api ─────────────▶ db
+       (nginx)           (FastAPI)          (postgres)
+       :8082
 
-                       ┌────────┐
-      eve.json ──────▶ │ EveBox │ :5636 (SQLite + auth)
-                       └────────┘
+       attacker ── scan, SQLi, sqlmap, tunnel DNS ──▶ web, api, db
+       (profil "attack", 172.20.0.2, hors HOME_NET)
+
+     Suricata ── af-packet sur br-xxxx (promiscuous, pile réseau de l'hôte)
+          │
+          └── eve.json ──▶ EveBox :5636 (SQLite + auth)
+                      │
+                      └── Promtail ──▶ Loki ──▶ Grafana :3000
+                                                   │
+                                               Alertes ──▶ Mailpit :8025
 ```
 
 ## Démarrage rapide
@@ -47,6 +57,7 @@ git clone https://github.com/VISCHENZISCH/suricata-ndr-dmz.git && cd suricata-nd
 cp .env.example .env        # puis définir des mots de passe forts
 docker compose up -d --build
 ./suricata/update-rules.sh  # récupère les règles ET Open et recharge la sonde
+docker compose run --rm attacker   # scénario d'attaque guidé
 ```
 
 **Prérequis :** Docker 24+, Docker Compose v2, environ 2 Go de RAM libres, Linux ou WSL2.
@@ -63,6 +74,7 @@ docker compose up -d --build
 | `grafana` | Dashboards « Direction » et « Exploitation » + 4 alertes | Réseau `monitoring` | http://127.0.0.1:3000 |
 | `mailpit` | Boîte de réception des e-mails d'alerte | Réseau `monitoring` | http://127.0.0.1:8025 |
 | `suricata` | Sonde NDR (capture af-packet sur le bridge DMZ) | Pile réseau de l'hôte | `suricatasc` (socket UNIX) |
+| `attacker` | Poste d'attaque du scénario (nmap, curl, dig, sqlmap) | `172.20.0.2` | `docker compose run --rm attacker` |
 
 Les identifiants (PostgreSQL et EveBox) sont définis dans `.env` : aucun compte par défaut n'est utilisé.
 
@@ -86,6 +98,18 @@ Les identifiants (PostgreSQL et EveBox) sont définis dans `.env` : aucun compte
 - Événements JSON dans `eve.json`, partagés avec EveBox par le volume `suricata-logs`.
 - Reproduit après un `docker compose down` suivi d'un `up -d` : le bridge est recréé sous un autre nom, l'entrypoint le retrouve seul et la détection repart.
 
+### Scénario d'attaque (`attacker`)
+
+- Conteneur Alpine minimal (nmap + scripts NSE, curl, dig, sqlmap), branché sur la DMZ en `172.20.0.2` sous le profil Compose `attack` : il ne démarre pas avec la pile, on l'invoque pour la démonstration.
+- Il reste **hors de `HOME_NET`** : vu de la sonde, c'est un poste externe, ce qui déclenche les règles de reconnaissance ET Open (`$EXTERNAL_NET -> $HOME_NET`).
+- `attacker/scenario.sh` déroule quatre étapes entrecoupées de pauses pour commenter en direct :
+  1. `nmap -sS` (200 ports les plus courants sur les quatre cibles) puis `nmap -sV` (80, 8000, 5432, 5636) ;
+  2. injection SQL dans l'URI (`?id=1' UNION SELECT ...`) et traversée de répertoire (`/../../../../etc/passwd`, puis sa forme encodée) ;
+  3. trois User-Agent d'outils offensifs (sqlmap, nikto, gobuster) sur une requête par ailleurs banale ;
+  4. tunnel DNS : 40 sous-domaines aléatoires de 48 caractères, puis des domaines de relais connus (ngrok, DuckDNS, no-ip).
+- Options : `--no-pause` (répétition automatisée), `--fast` (15 requêtes DNS), `--interactive` (attente d'Entrée entre les étapes), `-h`.
+- Mesure sur ce dépôt, un passage complet : 260 alertes, dont les cinq signatures maison et, côté ET Open, `ET SCAN Nmap Scripting Engine User-Agent`, `ET WEB_SERVER /etc/passwd Detected in URI`, `ET SCAN Suspicious inbound to PostgreSQL port 5432` et `ET WEB_SERVER SELECT USER SQL Injection Attempt in URI`.
+
 ## Durcissement
 
 - Aucun identifiant par défaut ; secrets gérés via `.env` (exclu de Git via `.gitignore`, modèle dans `.env.example`)
@@ -104,19 +128,23 @@ Les identifiants (PostgreSQL et EveBox) sont définis dans `.env` : aucun compte
 │   └── db/                  init.sql (schéma PostgreSQL)
 ├── evebox/                  evebox.yaml + entrypoint.sh (SQLite + auth)
 ├── suricata/                sonde NDR : suricata.yaml, rules/local.rules, Dockerfile, entrypoint.sh, update-rules.sh
-├── attacker/                conteneur attaquant et scenario.sh (à venir)
-├── notifications/           alerting / Mailpit (à venir)
+├── attacker/                Dockerfile du poste d'attaque (nmap, sqlmap) + scenario.sh
+├── loki/                    configuration Loki (loki.yaml)
+├── promtail/                configuration Promtail (promtail.yaml, scrape eve.json)
+├── grafana/
+│   ├── provisioning/        datasource Loki, alerting (5 règles), dashboard provider
+│   └── dashboards/          direction.json (Vue Direction), exploitation.json (Vue Exploitation)
 └── docs/                    cahier des charges, guide et ressources
 ```
 
-## Feuille de route (en cours)
+## Feuille de route
 
 - [x] Zone DMZ applicative (`web`, `api`, `db`) avec reverse proxy et authentification
 - [x] Console d'alertes `evebox` (SQLite, authentification depuis `.env`)
 - [x] Sonde NIDS `suricata` (`suricata.yaml`, 5 règles custom, ET Open, capture af-packet validée, alertes visibles dans EveBox)
-- [x] Dashboards `Grafana` + `Loki` (Vue Direction & Vue Exploitation), provisionnés depuis `grafana/`
-- [x] Alerting Grafana (2 sécurité + 2 infrastructure) et notifications `Mailpit`
-- [ ] Conteneur `attacker` et scénario d'attaque (`scenario.sh`)
+- [x] Dashboards `Grafana` + `Loki` (Vue Direction & Vue Exploitation), provisionnés en code depuis `grafana/`
+- [x] Alerting Grafana (2 infra + 3 sécu) et notifications e-mail via `Mailpit`
+- [x] Conteneur `attacker` et scénario d'attaque (`scenario.sh`, 5 étapes dont sqlmap, 260+ alertes mesurées)
 
 ## Équipe
 
