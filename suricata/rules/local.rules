@@ -1,0 +1,72 @@
+# =============================================================================
+#  Groupe 2 - Signatures personnalisees (Suricata 7.0)
+#  Chaque regle vise un comportement observable dans la DMZ 172.20.0.0/24.
+#  Plage de SID reservee : 2000001 - 2000099
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# 1. Injection SQL dans une requete HTTP
+#    Objectif : reperer les charges classiques (contournement de filtre par
+#    tautologie, UNION SELECT, commentaire SQL) dans l'URI ou le corps POST.
+# -----------------------------------------------------------------------------
+alert http $EXTERNAL_NET any -> $HTTP_SERVERS $HTTP_PORTS ( \
+    msg:"G2 - Injection SQL dans une requete HTTP (tautologie ou UNION SELECT)"; \
+    flow:established,to_server; \
+    http.uri; \
+    pcre:"/(?:%27|')(?:[\s+]|%(?:09|20))*(?:or|and)(?:[\s+]|%(?:09|20))+(?:%27|')?(?:[\s+]|%(?:09|20))*\d+(?:[\s+]|%(?:09|20))*(?:%27|')?(?:[\s+]|%(?:09|20))*(?:=|%3D)(?:[\s+]|%(?:09|20))*(?:%27|')?(?:[\s+]|%(?:09|20))*\d+|union(?:[\s+]|%(?:09|20))+select/i"; \
+    classtype:web-application-attack; \
+    metadata:groupe G2, pilier epreuve-du-feu, technique T1190; \
+    sid:2000001; rev:1;)
+
+# -----------------------------------------------------------------------------
+# 2. User-Agent d'outil offensif
+#    Objectif : identifier la reconnaissance automatisee (sqlmap, nikto, nmap,
+#    gobuster, wfuzz) des le premier appel HTTP.
+# -----------------------------------------------------------------------------
+alert http $EXTERNAL_NET any -> $HTTP_SERVERS $HTTP_PORTS ( \
+    msg:"G2 - User-Agent d'outil offensif detecte"; \
+    flow:established,to_server; \
+    http.user_agent; \
+    pcre:"/(?:sqlmap|nikto|nmap|masscan|gobuster|dirbuster|wfuzz|hydra|dirb)/i"; \
+    classtype:attempted-recon; \
+    metadata:groupe G2, pilier epruve-du-feu, technique T1595; \
+    sid:2000002; rev:1;)
+
+# -----------------------------------------------------------------------------
+# 3. Volume anormal de requetes DNS depuis un meme hote
+#    Objectif : detecter un balayage ou un debut de tunnel DNS. Le compteur
+#    porte sur 30 requetes en 10 secondes et par adresse source.
+# -----------------------------------------------------------------------------
+alert dns $EXTERNAL_NET any -> any any ( \
+    msg:"G2 - Volume anormal de requetes DNS (30 en 10 s depuis un hote)"; \
+    dns.opcode:0; \
+    detection_filter: track by_src, count 30, seconds 10; \
+    classtype:bad-unknown; \
+    metadata:groupe G2, pilier epruve-du-feu, technique T1071.004; \
+    sid:2000003; rev:1;)
+
+# -----------------------------------------------------------------------------
+# 4. Requete DNS a label tres long (tunnel ou exfiltration)
+#    Objectif : un label de plus de 40 caracteres dans un nom de domaine
+#    n'a pratiquement aucun usage legitime sur ce perimetre.
+# -----------------------------------------------------------------------------
+alert dns $EXTERNAL_NET any -> any any ( \
+    msg:"G2 - Requete DNS a label tres long (tunnel ou exfiltration)"; \
+    dns.query; \
+    pcre:"/^[a-z0-9_-]{40,}\./i"; \
+    classtype:bad-unknown; \
+    metadata:groupe G2, pilier epruve-du-feu, technique T1048; \
+    sid:2000004; rev:1;)
+
+# -----------------------------------------------------------------------------
+# 5. Requete DNS vers un domaine de tunnel ou de relais dynamique
+#    Objectif : les services de type ngrok, DuckDNS ou no-ip servent rarement
+#    au fonctionnement du portail et beaucoup au contournement de perimetre.
+# -----------------------------------------------------------------------------
+alert dns $EXTERNAL_NET any -> any 53 ( \
+    msg:"G2 - Requete DNS vers un domaine de tunnel ou de relais dynamique"; \
+    dns.query; \
+    pcre:"/(?:ngrok|no-ip|duckdns|dyndns|serveo|localtunnel|pagekite|telebit)/i"; \
+    classtype:bad-unknown; \
+    metadata:groupe G2, pilier epreuve-du-feu, technique T1572; \
+    sid:2000005; rev:1;)

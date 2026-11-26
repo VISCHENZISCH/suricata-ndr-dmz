@@ -4,7 +4,9 @@ WORKDIR /srv
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# --retries/--timeout : les reseaux de campus coupent regulierement les
+# connexions vers PyPI, ce qui fait echouer la construction pour rien.
+RUN pip install --no-cache-dir --retries 10 --timeout 60 -r requirements.txt
 
 COPY app ./app
 

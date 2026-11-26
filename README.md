@@ -46,6 +46,7 @@ Ce projet déploie une zone DMZ simulée (`172.20.0.0/24`) composée d'un portai
 git clone https://github.com/VISCHENZISCH/suricata-ndr-dmz.git && cd suricata-ndr-dmz
 cp .env.example .env        # puis définir des mots de passe forts
 docker compose up -d --build
+./suricata/update-rules.sh  # récupère les règles ET Open et recharge la sonde
 ```
 
 **Prérequis :** Docker 24+, Docker Compose v2, environ 2 Go de RAM libres, Linux ou WSL2.
@@ -58,6 +59,7 @@ docker compose up -d --build
 | `db` | Base de données PostgreSQL 16 (`g2db`) | `172.20.0.11` | Réseau DMZ uniquement |
 | `api` | API FastAPI (auth, sessions, santé DB) | `172.20.0.12` | Réseau DMZ uniquement |
 | `evebox` | Console d'alertes EveBox (SQLite) | `172.20.0.14` | http://127.0.0.1:5636 |
+| `suricata` | Sonde NDR (capture af-packet sur le bridge DMZ) | Pile réseau de l'hôte | `suricatasc` (socket UNIX) |
 
 Les identifiants (PostgreSQL et EveBox) sont définis dans `.env` : aucun compte par défaut n'est utilisé.
 
@@ -70,6 +72,15 @@ Les identifiants (PostgreSQL et EveBox) sont définis dans `.env` : aucun compte
 
 - Backend **SQLite** léger avec rétention de 7 jours (`evebox/evebox.yaml`).
 - Utilisateur créé automatiquement au premier démarrage via `evebox/entrypoint.sh` à partir de `EVEBOX_USER` et `EVEBOX_PASSWORD` (`.env`).
+
+### Sonde NDR (`suricata`)
+
+- Capture `af-packet` sur le bridge Docker de la DMZ. Le conteneur partage la pile réseau de l'hôte : un conteneur branché sur le bridge ne verrait pas le trafic unicast entre `web`, `api` et `db`, le bridge commutant port par port.
+- `suricata/entrypoint.sh` localise l'interface `br-xxxx` par l'adresse de passerelle `172.20.0.1`, puis démarre la sonde.
+- `HOME_NET` désigne les quatre cibles de la DMZ, pas le sous-réseau entier : le conteneur attaquant vit sur le même bridge et doit rester « externe » pour que les règles de reconnaissance se déclenchent.
+- Cinq signatures locales (`suricata/rules/local.rules`) : injection SQL, User-Agent d'outil offensif, volume DNS anormal, label DNS très long, requêtes TXT répétées.
+- `suricata/update-rules.sh` récupère ET Open via `suricata-update` et recharge la sonde à chaud (`suricatasc -c reload-rules`).
+- Événements JSON dans `eve.json`, partagés avec EveBox par le volume `suricata-logs`.
 
 ## Durcissement
 
@@ -98,7 +109,7 @@ Les identifiants (PostgreSQL et EveBox) sont définis dans `.env` : aucun compte
 
 - [x] Zone DMZ applicative (`web`, `api`, `db`) avec reverse proxy et authentification
 - [x] Console d'alertes `evebox` (SQLite, authentification depuis `.env`)
-- [ ] Sonde NIDS `suricata` (`suricata.yaml`, règles custom `local.rules`, ET Open)
+- [x] Sonde NIDS `suricata` (`suricata.yaml`, règles custom `local.rules`, ET Open)
 - [ ] Dashboards `Grafana` + `Loki` (Vue Direction & Vue Exploitation)
 - [ ] Alerting et notifications (`Mailpit` / webhook)
 - [ ] Conteneur `attacker` et scénario d'attaque (`scenario.sh`)

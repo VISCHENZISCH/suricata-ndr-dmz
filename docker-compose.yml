@@ -114,12 +114,54 @@ services:
     security_opt:
       - no-new-privileges:true
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5636/ || exit 1"]
+      # L'image EveBox ne contient pas wget mais curl. /ping repond sans
+      # authentification : la page d'accueil, elle, renvoie 401 par conception.
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:5636/ping"]
       interval: 15s
       timeout: 5s
       retries: 5
     restart: unless-stopped
+  #*****************************************
+  #     Sonde NDR Suricata
+  #*****************************************
+  # La capture se fait sur le bridge Docker de la DMZ. Un conteneur pose
+  # simplement sur ce reseau ne verrait que son propre trafic : le bridge
+  # commute port par port et n'inonde pas les autres ports, et passer son veth
+  # en promiscuite n'y change rien. La sonde partage donc la pile reseau de
+  # l'hote, retrouve l'interface br-xxxx par l'adresse de passerelle et la passe
+  # en mode promiscuous (voir suricata/entrypoint.sh) : le noyau clone alors
+  # chaque trame commutee vers la pile locale, ou af-packet la recupere.
+  suricata:
+    build: ./suricata
+    image: g2/suricata-ndr:7.0.17
+    container_name: g2-suricata
+    hostname: suricata
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_NICE
+    environment:
+      DMZ_GATEWAY: "172.20.0.1"
+    depends_on:
+      web:
+        condition: service_started
+    volumes:
+      - ./suricata/suricata.yaml:/etc/suricata/suricata.yaml:ro
+      - ./suricata/rules/local.rules:/var/lib/suricata/rules/local.rules:ro
+      - suricata-logs:/var/log/suricata
+      - suricata-rules:/var/lib/suricata/rules
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "suricatasc", "-c", "uptime"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
 volumes:
   db-data:
   suricata-logs:
+  suricata-rules:
   evebox-data:

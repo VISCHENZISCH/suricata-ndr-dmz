@@ -1,0 +1,162 @@
+%YAML 1.1
+---
+# =============================================================================
+#  Suricata 7.0 - sonde NDR du Groupe 2
+#  Perimetre : DMZ Docker 172.20.0.0/24 (web, api, db, evebox)
+#  Mode : detection passive (IDS), capture af-packet sur le bridge Docker
+# =============================================================================
+
+vars:
+  address-groups:
+    # HOME_NET designe les cibles protegees, pas tout le sous-reseau Docker.
+    # Le conteneur attaquant vit sur le meme bridge (172.20.0.0/24) mais reste
+    # "externe" du point de vue de la DMZ : sans cette distinction, les regles
+    # ET Open de reconnaissance (source $EXTERNAL_NET) ne se declencheraient
+    # jamais sur un scan venu de l'interieur du bridge.
+    HOME_NET: "[172.20.0.10,172.20.0.11,172.20.0.12,172.20.0.14]"
+    EXTERNAL_NET: "!$HOME_NET"
+    HTTP_SERVERS: "$HOME_NET"
+    SMTP_SERVERS: "$HOME_NET"
+    SQL_SERVERS: "$HOME_NET"
+    DNS_SERVERS: "$HOME_NET"
+    TELNET_SERVERS: "$HOME_NET"
+    DC_SERVERS: "$HOME_NET"
+    FILE_DATA_SERVERS: "$HOME_NET"
+
+  port-groups:
+    HTTP_PORTS: "80"
+    SHELLCODE_PORTS: "!80"
+    ORACLE_PORTS: "1521"
+    SSH_PORTS: "22"
+    FILE_DATA_PORTS: "[$HTTP_PORTS,110,143]"
+
+default-log-dir: /var/log/suricata
+
+stats:
+  enabled: yes
+  interval: 30
+
+outputs:
+  - eve-log:
+      enabled: yes
+      filetype: regular
+      filename: eve.json
+      community-id: true
+      types:
+        - alert:
+            payload: yes
+            packet: yes
+            metadata: yes
+            http-body: no
+            http-body-printable: no
+            tagged-packets: no
+        - anomaly:
+            enabled: yes
+        - http:
+            extended: yes
+        - dns:
+            query: yes
+            answer: yes
+            formats: [detailed]
+        - tls:
+            extended: yes
+        - flow
+        - netflow
+        - stats:
+            totals: yes
+            threads: no
+            deltas: no
+
+  - stats:
+      enabled: yes
+      filename: stats.log
+      append: yes
+
+  - fast:
+      enabled: no
+
+logging:
+  default-log-level: notice
+  outputs:
+    - console:
+        enabled: yes
+    - file:
+        enabled: yes
+        filename: /var/log/suricata/suricata.log
+        level: info
+
+af-packet:
+  - interface: default
+    threads: auto
+    cluster-id: 99
+    cluster-type: cluster_flow
+    defrag: yes
+    # tpacket-v3 est desactive volontairement : sur un bridge Linux, les
+    # trames commutees entre deux ports ne remontent pas dans un anneau
+    # TPACKET_V3, la sonde ne verrait que le trafic adresse au bridge
+    # (multicast mDNS/SSDP) et raterait tout le trafic entre conteneurs.
+    tpacket-v3: no
+    ring-size: 2048
+    block-size: 32768
+    use-emergency-flush: yes
+    buffered-size: 0
+
+pcap:
+  - interface: default
+
+app-layer:
+  protocols:
+    dns:
+      tcp: yes
+      udp: yes
+    http:
+      enabled: yes
+      libhtp:
+        default-config:
+          personality: IDS
+          request-body-limit: 100kb
+          response-body-limit: 100kb
+          double-decode-path: no
+          double-decode-query: no
+    tls:
+      enabled: yes
+    ftp:
+      enabled: yes
+    ssh:
+      enabled: yes
+
+flow:
+  memcap: 64mb
+  hash-size: 65536
+  prealloc: 10000
+
+stream:
+  memcap: 64mb
+  checksum-validation: yes
+  inline: no
+  reassembly:
+    memcap: 128mb
+    depth: 1mb
+
+detect-engine:
+  - profile: medium
+
+threading:
+  set-cpu-affinity: no
+  detect-thread-ratio: 1.0
+
+default-rule-path: /var/lib/suricata/rules
+rule-files:
+  - suricata.rules
+  - local.rules
+
+classification-file: /etc/suricata/classification.config
+reference-config-file: /etc/suricata/reference.config
+
+unix-command:
+  enabled: yes
+  filename: /var/run/suricata/suricata-command.socket
+
+security:
+  landlock:
+    enabled: no

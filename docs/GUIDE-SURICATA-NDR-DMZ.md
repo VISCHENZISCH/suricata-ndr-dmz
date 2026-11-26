@@ -36,7 +36,7 @@ suricata-ndr-dmz/
 ### Pilier 1 : déploiement reproductible (4 pts)
 - `docker compose up -d` doit tout démarrer, sans étape manuelle.
 - Au moins 2 conteneurs cibles (web + base ou API) dans un réseau Docker dédié, de type DMZ (ex. `172.20.0.0/24`).
-- Astuce : pour que Suricata voie le trafic, le plus fiable est de lui faire partager le namespace réseau de la cible avec `network_mode: "service:web"`. Ajouter `cap_add: [NET_ADMIN, NET_RAW, SYS_NICE]` et sniffer `eth0` en `af-packet`. Les scans de l'attaquant vers `web` sont alors visibles.
+- Capture réseau : un conteneur simplement branché sur le réseau DMZ ne voit pas le trafic unicast entre `web`, `api` et `db`. Le bridge Linux commute port par port et n'inonde pas les autres ports, et passer le veth en promiscuité n'y change rien. La solution retenue : la sonde partage la pile réseau de l'hôte (`network_mode: host`), avec `cap_add: [NET_ADMIN, NET_RAW, SYS_NICE]`, et capture en `af-packet` sur l'interface `br-xxxx` du bridge. Comme ce nom dépend d'un identifiant généré par Docker, `suricata/entrypoint.sh` le retrouve par l'adresse de passerelle `172.20.0.1`.
 - Persister `eve.json`, les règles et la base EveBox dans des volumes.
 
 ### Pilier 2 : durcissement (3 pts)
