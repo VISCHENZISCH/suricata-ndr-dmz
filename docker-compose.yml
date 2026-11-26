@@ -160,8 +160,58 @@ services:
       retries: 3
       start_period: 20s
     restart: unless-stopped
+  #*****************************************
+  #     Mailpit (serveur SMTP de test + interface web)
+  #*****************************************
+  # Le SMTP (1025) reste interne a la DMZ ; seule l'interface web est publiee,
+  # et uniquement sur 127.0.0.1.
+  mailpit:
+    image: axllent/mailpit:v1.21.0
+    container_name: g2-mailpit
+    hostname: mailpit
+    networks:
+      dmz:
+        ipv4_address: 172.20.0.15
+    ports:
+      - "127.0.0.1:8025:8025"
+    environment:
+      MP_DATABASE: /data/mailpit.db
+      MP_MAX_MESSAGES: "500"
+    volumes:
+      - mailpit-data:/data
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+  #*****************************************
+  #     Notifier : eve.json -> e-mail (Mailpit)
+  #*****************************************
+  notifier:
+    build: ./notifications/notifier
+    container_name: g2-notifier
+    hostname: notifier
+    networks:
+      dmz:
+        ipv4_address: 172.20.0.16
+    environment:
+      EVE_PATH: /var/log/suricata/eve.json
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      MAIL_FROM: ${MAIL_FROM:-suricata@dmz.local}
+      MAIL_TO: ${MAIL_TO:-soc@dmz.local}
+      NOTIFY_MAX_SEVERITY: ${NOTIFY_MAX_SEVERITY:-2}
+      NOTIFY_COOLDOWN_SECONDS: ${NOTIFY_COOLDOWN_SECONDS:-60}
+    volumes:
+      - suricata-logs:/var/log/suricata:ro
+    depends_on:
+      mailpit:
+        condition: service_started
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
 volumes:
   db-data:
   suricata-logs:
   suricata-rules:
   evebox-data:
+  mailpit-data:

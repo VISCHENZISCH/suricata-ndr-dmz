@@ -60,6 +60,8 @@ docker compose up -d --build
 | `api` | API FastAPI (auth, sessions, santé DB) | `172.20.0.12` | Réseau DMZ uniquement |
 | `evebox` | Console d'alertes EveBox (SQLite) | `172.20.0.14` | http://127.0.0.1:5636 |
 | `suricata` | Sonde NDR (capture af-packet sur le bridge DMZ) | Pile réseau de l'hôte | `suricatasc` (socket UNIX) |
+| `mailpit` | Serveur SMTP de test + boîte de réception web | `172.20.0.15` | http://127.0.0.1:8025 |
+| `notifier` | Lit `eve.json` et envoie un e-mail par alerte grave | `172.20.0.16` | Réseau DMZ uniquement |
 
 Les identifiants (PostgreSQL et EveBox) sont définis dans `.env` : aucun compte par défaut n'est utilisé.
 
@@ -83,6 +85,14 @@ Les identifiants (PostgreSQL et EveBox) sont définis dans `.env` : aucun compte
 - Événements JSON dans `eve.json`, partagés avec EveBox par le volume `suricata-logs`.
 - Reproduit après un `docker compose down` suivi d'un `up -d` : le bridge est recréé sous un autre nom, l'entrypoint le retrouve seul et la détection repart.
 
+### Notifications (`mailpit` + `notifier`)
+
+- `notifications/notifier/notifier.py` suit `eve.json` (volume `suricata-logs` en lecture seule) et envoie un e-mail à Mailpit pour chaque alerte de sévérité 1 ou 2 (`NOTIFY_MAX_SEVERITY`).
+- Un délai anti-doublon (`NOTIFY_COOLDOWN_SECONDS`, 60 s par signature et par adresse source) évite qu'un scan Nmap ne produise des centaines de mails.
+- Le mail contient la signature, le SID, la sévérité, l'horodatage, le flux source → destination et, selon le cas, la requête HTTP ou le nom DNS.
+- Les e-mails se lisent dans l'interface Mailpit : http://127.0.0.1:8025.
+- Test rapide : `curl -A sqlmap http://127.0.0.1:8082/` puis ouvrir Mailpit (alerte « User-Agent d'outil offensif »).
+
 ## Durcissement
 
 - Aucun identifiant par défaut ; secrets gérés via `.env` (exclu de Git via `.gitignore`, modèle dans `.env.example`)
@@ -102,7 +112,7 @@ Les identifiants (PostgreSQL et EveBox) sont définis dans `.env` : aucun compte
 ├── evebox/                  evebox.yaml + entrypoint.sh (SQLite + auth)
 ├── suricata/                sonde NDR : suricata.yaml, rules/local.rules, Dockerfile, entrypoint.sh, update-rules.sh
 ├── attacker/                conteneur attaquant et scenario.sh (à venir)
-├── notifications/           alerting / Mailpit (à venir)
+├── notifications/notifier/  Dockerfile + notifier.py (eve.json -> e-mail Mailpit)
 └── docs/                    cahier des charges, guide et ressources
 ```
 
@@ -112,7 +122,8 @@ Les identifiants (PostgreSQL et EveBox) sont définis dans `.env` : aucun compte
 - [x] Console d'alertes `evebox` (SQLite, authentification depuis `.env`)
 - [x] Sonde NIDS `suricata` (`suricata.yaml`, 5 règles custom, ET Open, capture af-packet validée, alertes visibles dans EveBox)
 - [ ] Dashboards `Grafana` + `Loki` (Vue Direction & Vue Exploitation)
-- [ ] Alerting et notifications (`Mailpit` / webhook)
+- [x] Notifications e-mail `Mailpit` (alertes Suricata sévérité 1-2)
+- [ ] Règles d'alerte Grafana (infra + sécurité) une fois Grafana/Loki en place
 - [ ] Conteneur `attacker` et scénario d'attaque (`scenario.sh`)
 
 ## Équipe
