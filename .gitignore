@@ -13,6 +13,7 @@ evebox/data/
 *.sqlite-shm
 *.sqlite-wal
 data/
+.securepipeline/
 
 # Règles téléchargées (régénérées par update-rules.sh)
 suricata/rules/suricata.rules
