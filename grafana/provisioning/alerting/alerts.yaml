@@ -1,0 +1,175 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: mailpit
+    receivers:
+      - uid: mailpit-email
+        type: email
+        settings:
+          addresses: soc@g2.local
+
+policies:
+  - orgId: 1
+    receiver: mailpit
+    group_by: [alertname]
+    group_wait: 10s
+    group_interval: 1m
+    repeat_interval: 4h
+
+groups:
+  - orgId: 1
+    name: g2-suricata
+    folder: Suricata NDR
+    interval: 30s
+    rules:
+      - uid: infra-probe-silent
+        title: "INFRA - Sonde Suricata silencieuse (aucun event 2 min)"
+        condition: C
+        for: 1m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "Aucun événement eve.json reçu depuis 2 minutes : Suricata, Promtail ou Loki est arrêté. Suricata émet un événement stats toutes les 30 s."
+        labels:
+          severity: critical
+          category: infrastructure
+        data:
+          - refId: A
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: loki
+            model:
+              refId: A
+              queryType: instant
+              expr: 'absent_over_time({job="suricata"}[2m])'
+          - refId: B
+            datasourceUid: __expr__
+            model: {refId: B, type: reduce, expression: A, reducer: last, settings: {mode: dropNN}}
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: {type: gt, params: [0]}
+      - uid: infra-drops
+        title: "INFRA - Paquets perdus par Suricata (> 1 %)"
+        condition: C
+        for: 5m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "Plus de 1 % des paquets capturés ont été abandonnés par le noyau avant analyse : la sonde est saturée (angles morts de détection)."
+        labels:
+          severity: warning
+          category: infrastructure
+        data:
+          - refId: A
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: loki
+            model:
+              refId: A
+              queryType: instant
+              expr: 'max(max_over_time({job="suricata", event_type="stats"} | json d="stats.capture.kernel_drops" | unwrap d [5m])) / max(max_over_time({job="suricata", event_type="stats"} | json p="stats.capture.kernel_packets" | unwrap p [5m]))'
+          - refId: B
+            datasourceUid: __expr__
+            model: {refId: B, type: reduce, expression: A, reducer: last, settings: {mode: dropNN}}
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: {type: gt, params: [0.01]}
+      - uid: sec-portscan
+        title: "SEC - Scan de ports / reconnaissance Nmap"
+        condition: C
+        for: 30s
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "Plus de 3 alertes ET SCAN en 1 minute (scan Nmap ou outil de reconnaissance) depuis la DMZ."
+        labels:
+          severity: high
+          category: security
+        data:
+          - refId: A
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: loki
+            model:
+              refId: A
+              queryType: instant
+              expr: 'sum(count_over_time({job="suricata", event_type="alert"} |= "ET SCAN" [1m]))'
+          - refId: B
+            datasourceUid: __expr__
+            model: {refId: B, type: reduce, expression: A, reducer: last, settings: {mode: dropNN}}
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: {type: gt, params: [3]}
+      - uid: sec-sev1
+        title: "SEC - Injection SQL / traversée de répertoires (sévérité 1)"
+        condition: C
+        for: 0s
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "Au moins une alerte de sévérité 1 (attaque applicative : injection SQL, traversée de répertoires) détectée par Suricata."
+        labels:
+          severity: critical
+          category: security
+        data:
+          - refId: A
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: loki
+            model:
+              refId: A
+              queryType: instant
+              expr: 'sum(count_over_time({job="suricata", event_type="alert", severity="1"} [1m]))'
+          - refId: B
+            datasourceUid: __expr__
+            model: {refId: B, type: reduce, expression: A, reducer: last, settings: {mode: dropNN}}
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: {type: gt, params: [0]}
+      - uid: sec-dns
+        title: "SEC - Tunnel ou volume DNS anormal"
+        condition: C
+        for: 30s
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "Requêtes DNS à label très long ou en volume anormal depuis un même hôte (tunnel / exfiltration, règles G2 SID 2000003 et 2000004)."
+        labels:
+          severity: warning
+          category: security
+        data:
+          - refId: A
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: loki
+            model:
+              refId: A
+              queryType: instant
+              expr: 'sum(count_over_time({job="suricata", event_type="alert"} |~ "G2 - (Requete DNS|Volume anormal)" [1m]))'
+          - refId: B
+            datasourceUid: __expr__
+            model: {refId: B, type: reduce, expression: A, reducer: last, settings: {mode: dropNN}}
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: {type: gt, params: [0]}

@@ -59,6 +59,9 @@ docker compose up -d --build
 | `db` | Base de données PostgreSQL 16 (`g2db`) | `172.20.0.11` | Réseau DMZ uniquement |
 | `api` | API FastAPI (auth, sessions, santé DB) | `172.20.0.12` | Réseau DMZ uniquement |
 | `evebox` | Console d'alertes EveBox (SQLite) | `172.20.0.14` | http://127.0.0.1:5636 |
+| `loki` / `promtail` | Stockage et collecte des logs `eve.json` | Réseau `monitoring` uniquement | — |
+| `grafana` | Dashboards « Direction » et « Exploitation » + 4 alertes | Réseau `monitoring` | http://127.0.0.1:3000 |
+| `mailpit` | Boîte de réception des e-mails d'alerte | Réseau `monitoring` | http://127.0.0.1:8025 |
 | `suricata` | Sonde NDR (capture af-packet sur le bridge DMZ) | Pile réseau de l'hôte | `suricatasc` (socket UNIX) |
 
 Les identifiants (PostgreSQL et EveBox) sont définis dans `.env` : aucun compte par défaut n'est utilisé.
@@ -111,8 +114,8 @@ Les identifiants (PostgreSQL et EveBox) sont définis dans `.env` : aucun compte
 - [x] Zone DMZ applicative (`web`, `api`, `db`) avec reverse proxy et authentification
 - [x] Console d'alertes `evebox` (SQLite, authentification depuis `.env`)
 - [x] Sonde NIDS `suricata` (`suricata.yaml`, 5 règles custom, ET Open, capture af-packet validée, alertes visibles dans EveBox)
-- [ ] Dashboards `Grafana` + `Loki` (Vue Direction & Vue Exploitation)
-- [ ] Alerting et notifications (`Mailpit` / webhook)
+- [x] Dashboards `Grafana` + `Loki` (Vue Direction & Vue Exploitation), provisionnés depuis `grafana/`
+- [x] Alerting Grafana (2 sécurité + 2 infrastructure) et notifications `Mailpit`
 - [ ] Conteneur `attacker` et scénario d'attaque (`scenario.sh`)
 
 ## Équipe
