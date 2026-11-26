@@ -160,6 +160,40 @@ services:
       retries: 3
       start_period: 20s
     restart: unless-stopped
+  #*****************************************
+  #     Conteneur attaquant (scenario)
+  #*****************************************
+  # Profil "attack" : il ne demarre pas avec la pile, on l'invoque pour la
+  # demonstration. Il est branche sur la DMZ comme un poste externe et reste
+  # hors de HOME_NET, ce qui permet aux regles de reconnaissance de se
+  # declencher (une source interne a HOME_NET ne serait pas "externe").
+  attacker:
+    build: ./attacker
+    image: g2/attacker:1.0
+    container_name: g2-attacker
+    hostname: attaquant
+    profiles: ["attack"]
+    networks:
+      dmz:
+        ipv4_address: 172.20.0.2
+    environment:
+      WEB_HOST: "172.20.0.10"
+      API_HOST: "172.20.0.12"
+      DB_HOST: "172.20.0.11"
+      EVEBOX_HOST: "172.20.0.14"
+      PAUSE_SECONDS: "4"
+      DNS_RESOLVER: ${DNS_RESOLVER:-}
+    depends_on:
+      web:
+        condition: service_started
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /root
+    cap_add:
+      - NET_RAW
+    security_opt:
+      - no-new-privileges:true
 volumes:
   db-data:
   suricata-logs:
