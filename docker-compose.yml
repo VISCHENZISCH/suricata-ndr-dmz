@@ -160,8 +160,27 @@ services:
       retries: 3
       start_period: 20s
     restart: unless-stopped
+
+
+  #*****************************************
+  #     Serveur de centralisation Loki
+  #****************************************
+  loki:
+    image: grafana/loki:3.7.0
+    container_name: g2-loki
+    hostname: loki
+    command: -config.file=/etc/loki/loki-config.yaml
+    networks:
+      - dmz
+    volumes:
+      - ./loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - loki-data:/loki
+    restart: unless-stopped
+
+
 volumes:
   db-data:
   suricata-logs:
   suricata-rules:
   evebox-data:
+  loki-data:
