@@ -75,12 +75,13 @@ Les identifiants (PostgreSQL et EveBox) sont définis dans `.env` : aucun compte
 
 ### Sonde NDR (`suricata`)
 
-- Capture `af-packet` sur le bridge Docker de la DMZ. Le conteneur partage la pile réseau de l'hôte : un conteneur branché sur le bridge ne verrait pas le trafic unicast entre `web`, `api` et `db`, le bridge commutant port par port.
-- `suricata/entrypoint.sh` localise l'interface `br-xxxx` par l'adresse de passerelle `172.20.0.1`, puis démarre la sonde.
+- Capture `af-packet` sur le bridge Docker de la DMZ. Le conteneur partage la pile réseau de l'hôte : un conteneur branché sur le bridge ne verrait que son propre trafic, le bridge commutant port par port.
+- `suricata/entrypoint.sh` localise l'interface `br-xxxx` par l'adresse de passerelle `172.20.0.1`, la passe en mode **promiscuous** (sans quoi le noyau ne remonte que le multicast adressé au bridge, jamais le trafic entre conteneurs), puis démarre la sonde. Le mode est rendu à l'arrêt.
 - `HOME_NET` désigne les quatre cibles de la DMZ, pas le sous-réseau entier : le conteneur attaquant vit sur le même bridge et doit rester « externe » pour que les règles de reconnaissance se déclenchent.
-- Cinq signatures locales (`suricata/rules/local.rules`) : injection SQL, User-Agent d'outil offensif, volume DNS anormal, label DNS très long, requêtes TXT répétées.
-- `suricata/update-rules.sh` récupère ET Open via `suricata-update` et recharge la sonde à chaud (`suricatasc -c reload-rules`).
+- Cinq signatures locales (`suricata/rules/local.rules`) : injection SQL, User-Agent d'outil offensif, volume DNS anormal, label DNS très long, requête vers un service de tunnel (ngrok, DuckDNS, no-ip).
+- `suricata/update-rules.sh` récupère ET Open via `suricata-update` et recharge la sonde à chaud (`suricatasc -c reload-rules`). Le jeu ET Open livré avec l'image (53 143 signatures) est déjà actif sans étape supplémentaire.
 - Événements JSON dans `eve.json`, partagés avec EveBox par le volume `suricata-logs`.
+- Reproduit après un `docker compose down` suivi d'un `up -d` : le bridge est recréé sous un autre nom, l'entrypoint le retrouve seul et la détection repart.
 
 ## Durcissement
 
@@ -99,7 +100,7 @@ Les identifiants (PostgreSQL et EveBox) sont définis dans `.env` : aucun compte
 │   ├── api/                 API FastAPI (Dockerfile, requirements.txt, app/main.py)
 │   └── db/                  init.sql (schéma PostgreSQL)
 ├── evebox/                  evebox.yaml + entrypoint.sh (SQLite + auth)
-├── suricata/                configuration, règles locales et mise à jour ET Open (à venir)
+├── suricata/                sonde NDR : suricata.yaml, rules/local.rules, Dockerfile, entrypoint.sh, update-rules.sh
 ├── attacker/                conteneur attaquant et scenario.sh (à venir)
 ├── notifications/           alerting / Mailpit (à venir)
 └── docs/                    cahier des charges, guide et ressources
@@ -109,7 +110,7 @@ Les identifiants (PostgreSQL et EveBox) sont définis dans `.env` : aucun compte
 
 - [x] Zone DMZ applicative (`web`, `api`, `db`) avec reverse proxy et authentification
 - [x] Console d'alertes `evebox` (SQLite, authentification depuis `.env`)
-- [x] Sonde NIDS `suricata` (`suricata.yaml`, règles custom `local.rules`, ET Open)
+- [x] Sonde NIDS `suricata` (`suricata.yaml`, 5 règles custom, ET Open, capture af-packet validée, alertes visibles dans EveBox)
 - [ ] Dashboards `Grafana` + `Loki` (Vue Direction & Vue Exploitation)
 - [ ] Alerting et notifications (`Mailpit` / webhook)
 - [ ] Conteneur `attacker` et scénario d'attaque (`scenario.sh`)
