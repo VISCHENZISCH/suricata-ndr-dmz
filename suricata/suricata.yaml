@@ -32,6 +32,10 @@ vars:
 
 default-log-dir: /var/log/suricata
 
+# Taille maximale capturee par paquet : couvre les trames GSO/GRO (> 1514 o)
+# sur les bridges Linux et evite les faux positifs "AF-PACKET truncated packet".
+default-packet-size: 65535
+
 stats:
   enabled: yes
   interval: 30
@@ -99,7 +103,6 @@ af-packet:
     ring-size: 2048
     block-size: 32768
     use-emergency-flush: yes
-    buffered-size: 0
 
 pcap:
   - interface: default
