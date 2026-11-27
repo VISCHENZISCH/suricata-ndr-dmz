@@ -57,11 +57,11 @@ docker compose up -d --build
 **Mise à jour ET Open et scénario d'attaque :**
 
 ```bash
-./suricata/update-rules.sh        # met à jour ET Open (Suricata) et recharge à chaud
-./scripts/check-lab.sh            # vérifie les services, endpoints et volumes du labo
-docker compose build attacker     # construit le poste attaquant (profil "attack")
-docker compose run --rm attacker  # scénario guidé : --no-pause, --fast, --interactive
-./scripts/debug-lab.sh            # trace un événement de bout en bout si un maillon ne répond pas
+./suricata/update-rules.sh             # met à jour ET Open et recharge à chaud
+./scripts/check-lab.sh                 # vérifie les 9 services, endpoints, Suricata et Loki
+docker compose build attacker          # construit le poste attaquant (profil attack)
+docker compose run --rm attacker       # options : --no-pause, --fast, --interactive
+./scripts/debug-lab.sh                 # trace E2E du traceur et diagnostic des 6 maillons
 ```
 
 > **Port 3000 déjà occupé ?** Grafana peut être publié ailleurs sans modifier le dépôt, via un fichier de surcharge local (non versionné) :
