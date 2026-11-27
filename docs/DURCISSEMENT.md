@@ -1,4 +1,4 @@
-# Durcissement de la pile — Groupe 2
+# Durcissement de la pile - Groupe 2
 
 Pilier 2 du cahier des charges (3 points). Ce document recense chaque mesure, sa
 mise en œuvre et la commande qui la prouve. Toutes les preuves ci-dessous ont été
@@ -11,11 +11,12 @@ exécutées sur la pile en fonctionnement.
 | Aucun identifiant par défaut | OK | `.env.example`, `evebox/entrypoint.sh`, `docker-compose.yml` |
 | Secrets hors du dépôt | OK | `.env` en `600`, exclu par `.gitignore` |
 | Ports limités à `127.0.0.1` | OK | 4 ports publiés, tous sur la boucle locale |
+| TLS sur consoles admin | OK | AC locale (`tls-init`), HTTPS sur EveBox et Grafana |
 | Authentification EveBox | OK | `authentication.required: true` |
 | Authentification Grafana | OK | admin via `.env`, anonyme et inscription désactivés |
-| Versions d'images figées | OK | 8 images, aucun `:latest` |
-| `no-new-privileges` | OK | 9 conteneurs sur 9 |
-| Racine en lecture seule | OK | 9 conteneurs sur 9, `tmpfs` ciblés |
+| Versions d'images figées | OK | 8 images + 1 build local, aucun `:latest` |
+| `no-new-privileges` | OK | 10 conteneurs sur 10 |
+| Racine en lecture seule | OK | 10 conteneurs sur 10, `tmpfs` ciblés |
 | Capabilities minimales | OK | `cap_drop: ALL` partout, `cap_add` justifié service par service |
 | Journalisation bornée | OK | `json-file`, 10 Mo × 3 par service |
 
@@ -39,7 +40,7 @@ SHA-256, ce qui rend une attaque GPU non rentable sur une base volée.
 **EveBox** exige une session pour toute lecture de données :
 
 ```console
-$ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5636/api/alerts
+$ curl -sk -o /dev/null -w '%{http_code}\n' https://127.0.0.1:5636/api/alerts
 401
 ```
 
@@ -49,9 +50,9 @@ données restent derrière `/api/*`, protégées par l'authentification.
 **Grafana** : accès anonyme et inscription désactivés, API fermée sans session :
 
 ```console
-$ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3001/api/dashboards/home
+$ curl -sk -o /dev/null -w '%{http_code}\n' https://127.0.0.1:3001/api/dashboards/home
 401
-$ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3001/dashboard
+$ curl -sk -o /dev/null -w '%{http_code}\n' https://127.0.0.1:3001/dashboard
 302   # redirection vers /login
 ```
 
@@ -115,7 +116,7 @@ $ docker compose ps --format '{{.Ports}}' | grep -Eo '(0\.0\.0\.0|\[::\]):[0-9]+
 
 ### Racine en lecture seule
 
-Les 9 conteneurs tournent avec `read_only: true`. Seuls les volumes nommés et
+Les 10 conteneurs tournent avec `read_only: true`. Seuls les volumes nommés et
 quelques `tmpfs` ciblés sont inscriptibles :
 
 | Service | Écritures autorisées |
@@ -190,9 +191,36 @@ $ docker inspect g2-suricata --format '{{.HostConfig.CapDrop}} {{.HostConfig.Cap
   le redémarrage ne suffit pas, il faut attendre la fin du blocage ou vider la
   table dans le volume `grafana-data`.
 
-## 5. Images
+## 5. TLS sur les consoles d'administration
 
-Huit images, toutes épinglées, aucune en `:latest` :
+Le service utilitaire `tls-init` (`tls/Dockerfile`, image `g2/tls-init:1.0`)
+s'exécute une seule fois au `docker compose up` (avant `evebox` et `grafana`)
+et génère dans le volume partagé `tls-certs` :
+
+- une **AC locale** (`ca.crt` / `ca.key`, RSA 2048, 10 ans) ;
+- un certificat **EveBox** (`evebox.crt` / `evebox.key`, SAN `DNS:evebox`, `DNS:localhost`, `IP:127.0.0.1`, `IP:172.20.0.14`) ;
+- un certificat **Grafana** (`grafana.crt` / `grafana.key`, SAN `DNS:grafana`, `DNS:localhost`, `IP:127.0.0.1`), propriétaire UID `472`.
+
+Les certificats sont idempotents : s'ils existent déjà et sont valides, `tls-init`
+ne les régénère pas. Le service se termine avec le code 0, puis `depends_on:
+condition: service_completed_successfully` libère `evebox` et `grafana`.
+
+```console
+$ curl -sk -o /dev/null -w '%{http_code}\n' https://127.0.0.1:5636/ping
+200
+$ curl -sk -o /dev/null -w '%{http_code}\n' https://127.0.0.1:3000/api/health
+200
+$ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5636/ping
+000   # connexion refusée (HTTP clair fermé)
+```
+
+Le trafic DMZ (`:8082`) reste volontairement en HTTP pour que Suricata conserve
+sa visibilité L7 sur les requêtes de l'attaquant (SQLi, User-Agent, traversée).
+
+## 6. Images
+
+Huit images de service, toutes épinglées, aucune en `:latest`, plus l'image
+utilitaire `g2/tls-init:1.0` (construite localement depuis `tls/Dockerfile`) :
 
 ```
 nginx:1.27-alpine      postgres:16-alpine     jasonish/evebox:0.32.0
@@ -200,17 +228,18 @@ grafana/loki:3.2.0     grafana/promtail:3.2.0 grafana/grafana:11.3.0
 axllent/mailpit:v1.21  jasonish/suricata:7.0.17 (base de g2/suricata-ndr:7.0.17)
 ```
 
-## 6. Risques acceptés
+## 7. Risques acceptés
 
 | Risque | Justification | Piste |
 |---|---|---|
 | Mailpit sans authentification | outil de démonstration, publié sur `127.0.0.1` uniquement | authentification de l'UI Mailpit |
 | Secrets en variables d'environnement | visibles via `docker inspect`, hôte mono-utilisateur | secrets Docker + `_FILE` |
 | EveBox, Mailpit et Promtail en root dans le conteneur | images amont qui n'embarquent pas d'utilisateur dédié | `user:` dédié, à valider sur les volumes |
-| Pas de TLS | trafic local, ports sur la boucle locale | reverse proxy TLS pour la démonstration distante |
+| Certificats TLS auto-signés | trafic local, AC dédiée générée par `tls-init` ; les navigateurs affichent un avertissement | vraie AC (Let's Encrypt) ou reverse proxy TLS |
+| Trafic DMZ en clair (`:8082`) | nécessaire pour l'inspection L7 de Suricata (SQLi, User-Agent, traversée) | TLS MitM via Suricata ou miroir déchiffré |
 | Sessions API en mémoire | perdues au redémarrage, mono-instance | sessions en base |
 
-## 7. Vérification en une commande
+## 8. Vérification en une commande
 
 ```bash
 ./scripts/check-lab.sh
@@ -218,7 +247,7 @@ axllent/mailpit:v1.21  jasonish/suricata:7.0.17 (base de g2/suricata-ndr:7.0.17)
 
 La section 7 du script contrôle automatiquement : lecture seule, `no-new-privileges`,
 `cap_drop`, ports hors boucle locale, tags `:latest`, permissions de `.env`,
-versionnement de `.env`, et l'authentification d'EveBox et de Grafana.
+versionnement de `.env`, authentification d'EveBox et de Grafana, et TLS actif.
 
 ```console
 ==> 7. Durcissement (racine en lecture seule, capabilities, exposition)
@@ -232,4 +261,5 @@ versionnement de `.env`, et l'authentification d'EveBox et de Grafana.
   [OK]   Mots de passe applicatifs personnalisés (16 caractères minimum).
   [OK]   EveBox impose une authentification (401 sans identifiants).
   [OK]   Grafana impose une authentification (401 sans identifiants).
+  [OK]   TLS actif sur EveBox (HTTPS :5636) et Grafana (HTTPS :3000).
 ```

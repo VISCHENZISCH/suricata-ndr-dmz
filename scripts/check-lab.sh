@@ -13,8 +13,8 @@ NO_BANNER="${NO_BANNER:-}"
 
 DMZ_GW="${DMZ_GW:-172.20.0.1}"
 WEB_URL="${WEB_URL:-http://127.0.0.1:8082}"
-EVEBOX_URL="${EVEBOX_URL:-http://127.0.0.1:5636}"
-GRAFANA_URL="${GRAFANA_URL:-http://127.0.0.1:3000}"
+EVEBOX_URL="${EVEBOX_URL:-https://127.0.0.1:5636}"
+GRAFANA_URL="${GRAFANA_URL:-https://127.0.0.1:3000}"
 MAILPIT_URL="${MAILPIT_URL:-http://127.0.0.1:8025}"
 EVE_MAX_AGE_MIN="${EVE_MAX_AGE_MIN:-60}"
 
@@ -100,9 +100,9 @@ env_get_from() {
 # http_code URL [user:pass] -> code HTTP, ou 000 si injoignable (jamais de doublon).
 http_code() {
     if [ -n "${2:-}" ]; then
-        code=$(curl -s -o /dev/null --connect-timeout 3 -m 6 -u "$2" -w '%{http_code}' "$1" 2>/dev/null) || true
+        code=$(curl -sk -o /dev/null --connect-timeout 3 -m 6 -u "$2" -w '%{http_code}' "$1" 2>/dev/null) || true
     else
-        code=$(curl -s -o /dev/null --connect-timeout 3 -m 6 -w '%{http_code}' "$1" 2>/dev/null) || true
+        code=$(curl -sk -o /dev/null --connect-timeout 3 -m 6 -w '%{http_code}' "$1" 2>/dev/null) || true
     fi
     printf '%s' "${code:-000}"
 }
@@ -110,9 +110,9 @@ http_code() {
 # http_body URL [user:pass] -> corps de la réponse (vide si échec).
 http_body() {
     if [ -n "${2:-}" ]; then
-        body=$(curl -s --connect-timeout 3 -m 6 -u "$2" "$1" 2>/dev/null) || true
+        body=$(curl -sk --connect-timeout 3 -m 6 -u "$2" "$1" 2>/dev/null) || true
     else
-        body=$(curl -s --connect-timeout 3 -m 6 "$1" 2>/dev/null) || true
+        body=$(curl -sk --connect-timeout 3 -m 6 "$1" 2>/dev/null) || true
     fi
     printf '%s' "${body:-}"
 }
@@ -390,7 +390,7 @@ else
         warn "Nombre d'alertes Grafana faible ($rule_count, attendu >= 4)."
     fi
 
-    loki_resp=$(curl -s --connect-timeout 3 -m 8 -u "$auth" -H "Content-Type: application/json" \
+    loki_resp=$(curl -sk --connect-timeout 3 -m 8 -u "$auth" -H "Content-Type: application/json" \
         -d '{"queries":[{"refId":"A","datasource":{"type":"loki","uid":"loki"},"expr":"sum(count_over_time({job=\"suricata\"}[1h]))","queryType":"instant"}],"from":"now-1h","to":"now"}' \
         "$GRAFANA_URL/api/ds/query" 2>/dev/null) || true
     if printf '%s' "$loki_resp" | grep -Eq '"status" *: *200'; then
@@ -507,6 +507,15 @@ if [ "$code" = "401" ]; then
     ok "Grafana impose une authentification (401 sans identifiants)."
 else
     warn "Grafana /api/dashboards/home -> HTTP $code (401 attendu)."
+fi
+
+# Vérification TLS : les consoles admin doivent répondre en HTTPS.
+evebox_tls=$(curl -sk -o /dev/null --connect-timeout 3 -m 6 -w '%{http_code}' "https://127.0.0.1:5636/ping" 2>/dev/null) || true
+grafana_tls=$(curl -sk -o /dev/null --connect-timeout 3 -m 6 -w '%{http_code}' "https://127.0.0.1:3000/api/health" 2>/dev/null) || true
+if [ "${evebox_tls:-000}" = "200" ] && [ "${grafana_tls:-000}" = "200" ]; then
+    ok "TLS actif sur EveBox (HTTPS :5636) et Grafana (HTTPS :3000)."
+else
+    warn "TLS non fonctionnel (EveBox=$evebox_tls, Grafana=$grafana_tls)."
 fi
 
 # Bilan 

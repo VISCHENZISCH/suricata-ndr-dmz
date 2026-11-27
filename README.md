@@ -73,7 +73,7 @@ docker compose run --rm attacker       # options : --no-pause, --fast, --interac
 >     ports: !override ["127.0.0.1:3001:3000"]
 > ```
 >
-> Les scripts acceptent alors `GRAFANA_URL=http://127.0.0.1:3001 ./scripts/check-lab.sh`.
+> Les scripts acceptent alors `GRAFANA_URL=https://127.0.0.1:3001 ./scripts/check-lab.sh`.
 
 ## Services déployés
 
@@ -82,10 +82,10 @@ docker compose run --rm attacker       # options : --no-pause, --fast, --interac
 | `web` | Portail Nginx et reverse proxy `/api/` | `dmz` (`172.20.0.10`) | http://127.0.0.1:8082 |
 | `db` | PostgreSQL 16 (`g2db`) | `dmz` (`172.20.0.11`) | Interne DMZ |
 | `api` | API FastAPI (auth, sessions, `/api/health`) | `dmz` (`172.20.0.12`) | Interne DMZ |
-| `evebox` | Console d'alertes SQLite (rétention 7 j) | `dmz` (`172.20.0.14`) | http://127.0.0.1:5636 |
+| `evebox` | Console d'alertes SQLite (rétention 7 j) | `dmz` (`172.20.0.14`) | https://127.0.0.1:5636 |
 | `suricata` | Sonde NDR (`af-packet` sur bridge DMZ) | Pile réseau hôte | `suricatasc` (socket UNIX) |
 | `loki` / `promtail` | Indexation et collecte de `eve.json` | `monitoring` | Interne |
-| `grafana` | Dashboards (2) + alerting (5 règles) | `monitoring` | http://127.0.0.1:3000 |
+| `grafana` | Dashboards (2) + alerting (5 règles) | `monitoring` | https://127.0.0.1:3000 |
 | `mailpit` | Boîte SMTP des alertes (`soc@g2.local`) | `monitoring` | http://127.0.0.1:8025 |
 | `attacker` | Poste d'attaque (`nmap`, `curl`, `dig`, `sqlmap`) | `dmz` (`172.20.0.2`) | `docker compose run --rm attacker` |
 
@@ -127,7 +127,8 @@ Détail complet, commandes de preuve et risques acceptés : [`docs/DURCISSEMENT.
 - **Secrets** dans `.env` (mode `600`, ignoré par Git, modèle `.env.example`) ; mots de passe générés aléatoirement, aucun compte par défaut.
 - **Authentification** obligatoire sur EveBox (`/api/alerts` → 401) et Grafana (accès anonyme et inscription désactivés) ; PostgreSQL en SCRAM-SHA-256 sur socket **et** réseau (`dmz/db/harden-hba.sh`).
 - **Exposition** limitée à `127.0.0.1` (`8082`, `5636`, `3001`, `8025`) ; `api`, `db`, `loki`, `promtail` non publiés.
-- **Conteneurs** : `read_only: true` et `no-new-privileges: true` sur les 9 services, `cap_drop: [ALL]` partout avec `cap_add` justifié service par service (`web`, `db`, `suricata` uniquement), comptes non-root (`apiuser`, grafana `472`, loki `10001`) ou abandon de privilèges (`postgres`, `suricata`).
+- **Conteneurs** : `read_only: true` et `no-new-privileges: true` sur les 9 services, `cap_drop: [ALL]` partout avec `cap_add` justifié service par service (`web`, `db`, `suricata`, `tls-init` uniquement), comptes non-root (`apiuser`, grafana `472`, loki `10001`) ou abandon de privilèges (`postgres`, `suricata`).
+- **TLS** : les consoles d'administration (EveBox, Grafana) sont servies en HTTPS via une AC locale auto-signée générée au premier lancement par le service `tls-init`. Le trafic DMZ (`web` :8082) reste en HTTP pour que Suricata conserve sa visibilité L7.
 - **Images** épinglées (aucun `:latest`), journalisation `json-file` bornée à 10 Mo × 3, healthchecks sur les 9 services.
 - **Application** : mots de passe en scrypt (16 Mio par calcul, ancien SHA-256 ré-haché à la connexion), en-têtes de sécurité et `server_tokens off` sur Nginx, cookie `HttpOnly`/`SameSite=Lax`, CORS restreint.
 - **Vérification** automatique : `./scripts/check-lab.sh` (section 7).
@@ -139,6 +140,7 @@ Détail complet, commandes de preuve et risques acceptés : [`docs/DURCISSEMENT.
 ├── .env.example             modèle des variables d'environnement
 ├── dmz/{web,api,db}         Nginx + frontend, FastAPI, schéma PostgreSQL
 ├── evebox/                  evebox.yaml + entrypoint.sh
+├── tls/                     Dockerfile + entrypoint.sh (AC locale + certificats SAN)
 ├── suricata/                suricata.yaml, rules/local.rules, Dockerfile, entrypoint.sh, update-rules.sh
 ├── attacker/                Dockerfile (nmap, curl, dig, sqlmap) + scenario.sh
 ├── loki/ & promtail/        stockage et collecte de eve.json
@@ -155,7 +157,7 @@ Détail complet, commandes de preuve et risques acceptés : [`docs/DURCISSEMENT.
 - [x] Dashboards `Grafana` + `Loki` (Direction & Exploitation USE/RED)
 - [x] Alerting Grafana (5 règles) + notifications `Mailpit`
 - [x] Conteneur `attacker` et scénario 6 étapes (`sqlmap` inclus)
-- [x] Durcissement complet (Pilier 2) : secrets, authentification, `read_only`, `cap_drop`, images figées, `docs/DURCISSEMENT.md`
+- [x] Durcissement complet (Pilier 2) : secrets, authentification, `read_only`, `cap_drop`, TLS (EveBox + Grafana), images figées, `docs/DURCISSEMENT.md`
 - [ ] Rapport technique (15-20 p. PDF) et soutenance (25 min)
 
 ## Équipe

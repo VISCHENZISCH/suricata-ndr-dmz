@@ -5,8 +5,9 @@ http:
   host: "0.0.0.0"
   port: 5636
   tls:
-    # Exposé uniquement sur 127.0.0.1 (passer à true si accès HTTPS direct)
-    enabled: false
+    enabled: true
+    certificate: /etc/evebox/tls/evebox.crt
+    key: /etc/evebox/tls/evebox.key
 
 authentication:
   required: true

@@ -16,7 +16,7 @@ SKEW_WARN="${SKEW_WARN:-2}"
 SKEW_FAIL="${SKEW_FAIL:-30}"
 NTP_SERVERS="${NTP_SERVERS:-pool.ntp.org time.cloudflare.com time.google.com}"
 TIME_URLS="${TIME_URLS:-https://www.cloudflare.com/cdn-cgi/trace https://www.google.com/generate_204}"
-LAB_URL="${LAB_URL:-http://127.0.0.1:3000/api/health}"
+LAB_URL="${LAB_URL:-https://127.0.0.1:3000/api/health}"
 LAB_PORTS="${LAB_PORTS:-8082 5636 3000 8025}"
 DMZ_GW="${DMZ_GW:-172.20.0.1}"
 DMZ_SUBNET="${DMZ_SUBNET:-172.20.0.0/16}"
@@ -185,7 +185,7 @@ check_common_env() {
 
 http_offset() {
     t0=$(date +%s)
-    hdr=$(curl -s -D - -o /dev/null --connect-timeout 3 -m 6 "$1" 2>/dev/null | tr -d '\r' | grep -i '^date:' | head -n 1) || true
+    hdr=$(curl -sk -D - -o /dev/null --connect-timeout 3 -m 6 "$1" 2>/dev/null | tr -d '\r' | grep -i '^date:' | head -n 1) || true
     t1=$(date +%s)
     [ -n "$hdr" ] || return 1
     ref=$(date -u -d "${hdr#*: }" +%s 2>/dev/null) || return 1

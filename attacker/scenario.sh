@@ -201,7 +201,7 @@ printf '%s%s%s\n' "$BRED" "$RULE" "$RESET"
 printf '  %sPortail web%s      : %shttp://%s/%s\n'        "$BCYAN" "$RESET" "$BWHITE" "$WEB_HOST" "$RESET"
 printf '  %sAPI FastAPI%s      : %shttp://%s:8000/%s\n'   "$BCYAN" "$RESET" "$BWHITE" "$API_HOST" "$RESET"
 printf '  %sBase PostgreSQL%s  : %s%s:5432%s\n'           "$BCYAN" "$RESET" "$BWHITE" "$DB_HOST" "$RESET"
-printf '  %sConsole EveBox%s   : %shttp://127.0.0.1:5636%s %s(depuis l'"'"'hôte)%s\n' \
+printf '  %sConsole EveBox%s   : %shttps://127.0.0.1:5636%s %s(depuis l'"'"'hôte)%s\n' \
     "$BCYAN" "$RESET" "$BWHITE" "$RESET" "$DIM" "$RESET"
 printf '  %sRésolveur DNS%s    : %s%s%s\n'                "$BCYAN" "$RESET" "$BWHITE" "$DNS_RESOLVER" "$RESET"
 printf '  %sPauses%s           : %s%s%s\n'                "$BCYAN" "$RESET" "$BWHITE" "$MODE_PAUSE" "$RESET"
@@ -355,7 +355,7 @@ cat <<EOF
     docker exec g2-suricata sh -c \\
       'grep "\\"event_type\\":\\"alert\\"" /var/log/suricata/eve.json | tail -5'
 
-  ${BCYAN}Dans EveBox :${RESET} http://127.0.0.1:5636  (identifiants dans .env)
+  ${BCYAN}Dans EveBox :${RESET} https://127.0.0.1:5636  (identifiants dans .env)
     ${BYELLOW}alert.signature_id:2000001${RESET}  -> injection SQL
     ${BYELLOW}alert.signature_id:2000002${RESET}  -> User-Agent offensif
     ${BYELLOW}alert.signature_id:2000003${RESET}  -> volume DNS anormal
@@ -363,7 +363,7 @@ cat <<EOF
     ${BYELLOW}alert.signature_id:2000005${RESET}  -> domaine de tunnel
 
   ${BCYAN}Dans Grafana et Mailpit :${RESET}
-    Grafana : http://127.0.0.1:3000  (Vue Direction et Vue Exploitation)
+    Grafana : https://127.0.0.1:3000  (Vue Direction et Vue Exploitation)
     Mailpit : http://127.0.0.1:8025  (notifications SOC soc@g2.local)
 
 EOF

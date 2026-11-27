@@ -146,6 +146,25 @@ services:
   #*****************************************
   #     Console d'alertes EveBox
   #*****************************************
+  # ------------ Service tls-init : génère l'AC locale + certificats SAN ----------
+  tls-init:
+    build: ./tls
+    image: g2/tls-init:1.0
+    container_name: g2-tls-init
+    logging: *default-logging
+    volumes:
+      - tls-certs:/certs
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    cap_add: [CHOWN, FOWNER, DAC_OVERRIDE]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 64m
+    pids_limit: 32
+    restart: "no"
+
   evebox:
     image: jasonish/evebox:0.32.0
     container_name: g2-evebox
@@ -154,6 +173,9 @@ services:
     networks:
       dmz:
         ipv4_address: 172.20.0.14
+    depends_on:
+      tls-init:
+        condition: service_completed_successfully
     ports:
       - "127.0.0.1:5636:5636"
     environment:
@@ -164,6 +186,7 @@ services:
       - ./evebox/entrypoint.sh:/usr/local/bin/evebox-entrypoint.sh:ro
       - suricata-logs:/var/log/suricata:ro
       - evebox-data:/var/lib/evebox
+      - tls-certs:/etc/evebox/tls:ro
     read_only: true
     tmpfs:
       - /tmp
@@ -175,9 +198,8 @@ services:
     mem_limit: 256m
     pids_limit: 64
     healthcheck:
-      # L'image EveBox ne contient pas wget mais curl. /ping repond sans
-      # authentification : la page d'accueil, elle, renvoie 401 par conception.
-      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:5636/ping"]
+      # EveBox écoute désormais en HTTPS ; --cacert valide le certificat auto-signé.
+      test: ["CMD", "curl", "-fsS", "--cacert", "/etc/evebox/tls/ca.crt", "-o", "/dev/null", "https://127.0.0.1:5636/ping"]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -330,7 +352,13 @@ services:
     logging: *default-logging
     hostname: grafana
     networks: [monitoring]
-    depends_on: [loki, mailpit]
+    depends_on:
+      loki:
+        condition: service_started
+      mailpit:
+        condition: service_started
+      tls-init:
+        condition: service_completed_successfully
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
@@ -340,12 +368,17 @@ services:
       GF_SMTP_ENABLED: "true"
       GF_SMTP_HOST: mailpit:1025
       GF_SMTP_FROM_ADDRESS: grafana@g2.local
+      # --- TLS : Grafana écoute en HTTPS ---
+      GF_SERVER_PROTOCOL: https
+      GF_SERVER_CERT_FILE: /etc/grafana/tls/grafana.crt
+      GF_SERVER_CERT_KEY: /etc/grafana/tls/grafana.key
     ports:
       - "127.0.0.1:3000:3000"
     volumes:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - tls-certs:/etc/grafana/tls:ro
     read_only: true
     tmpfs:
       - /tmp
@@ -355,7 +388,8 @@ services:
     mem_limit: 384m
     pids_limit: 128
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      # Grafana écoute en HTTPS ; --no-check-certificate pour le cert auto-signé.
+      test: ["CMD", "wget", "--no-check-certificate", "-qO-", "https://127.0.0.1:3000/api/health"]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -404,3 +438,4 @@ volumes:
   loki-data:
   promtail-pos:
   grafana-data:
+  tls-certs:
