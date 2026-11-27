@@ -57,6 +57,7 @@ docker compose up -d --build
 **Mise à jour ET Open et scénario d'attaque :**
 
 ```bash
+./scripts/check-lab.sh                 # vérifie les 9 services, endpoints, Suricata & Loki
 ./suricata/update-rules.sh             # met à jour ET Open + recharge à chaud
 docker compose build attacker          # construit le poste attaquant (profil attack)
 docker compose run --rm attacker       # options : --no-pause, --fast, --interactive
@@ -124,6 +125,7 @@ Tous les comptes (PostgreSQL, EveBox, Grafana) sont configurés via `.env` — a
 ├── attacker/                Dockerfile (nmap, curl, dig, sqlmap) + scenario.sh
 ├── loki/ & promtail/        stockage et collecte de eve.json
 ├── grafana/                 provisioning (datasource, 5 alertes) + 2 dashboards JSON
+├── scripts/                 check-lab.sh, check-client.sh (Linux/WSL), debug-lab.sh (trace E2E)
 └── docs/                    cahier des charges PDF, guide et ressources
 ```
 

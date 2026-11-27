@@ -158,7 +158,7 @@ pause() {
         return 0
     fi
     if [ -n "$MODE_FORCE_TTY" ] || [ -t 0 ]; then
-        printf '%s  ⏸  [Entrée pour continuer]%s ' "$DIM" "$RESET"
+        printf '%s   [Entrée pour continuer]%s ' "$DIM" "$RESET"
         read -r _ || true
         return 0
     fi
