@@ -269,11 +269,11 @@ if have curl; then
     fi
 
     eve_ping=$(http_code "$EVEBOX_URL/ping")
-    eve_api=$(http_code "$EVEBOX_URL/api/1/alerts")
+    eve_api=$(http_code "$EVEBOX_URL/api/alerts")
     if [ "$eve_ping" = "200" ] && [ "$eve_api" = "401" ]; then
-        ok "EveBox ($EVEBOX_URL) -> /ping 200 et /api/1/alerts protégé (401)."
+        ok "EveBox ($EVEBOX_URL) -> /ping 200 et /api/alerts protégé (401)."
     elif [ "$eve_ping" = "200" ]; then
-        warn "EveBox /ping 200, mais /api/1/alerts renvoie HTTP $eve_api (attendu : 401)."
+        warn "EveBox /ping 200, mais /api/alerts renvoie HTTP $eve_api (attendu : 401)."
     else
         fail "EveBox injoignable (/ping -> HTTP $eve_ping)."
     fi

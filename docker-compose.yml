@@ -165,7 +165,10 @@ services:
       interval: 20s
       timeout: 5s
       retries: 3
-      start_period: 20s
+      # Le chargement des 53 000 signatures ET Open prend environ 90 s sur une
+      # machine de portable : en dessous, la sonde etait declaree unhealthy
+      # alors qu'elle chargeait encore ses regles.
+      start_period: 180s
     restart: unless-stopped
   #***********************************************
   #     Supervision : Promtail -> Loki -> Grafana

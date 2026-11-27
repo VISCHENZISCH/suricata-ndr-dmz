@@ -36,3 +36,6 @@ docs/*.log
 Thumbs.db
 .vscode/
 .idea/
+
+# Surcharge locale (ports specifiques a la machine)
+docker-compose.override.yml

@@ -8,6 +8,9 @@
 #
 set -u
 
+# Port Grafana parametrable : une autre pile peut deja occuper le 3000.
+GRAFANA_URL="${GRAFANA_URL:-http://127.0.0.1:3000}"
+
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd) || exit 1
 # shellcheck source=scripts/lib-client.sh
 . "$SCRIPT_DIR/lib-client.sh"
@@ -234,11 +237,11 @@ dbg_evebox() {
 
     if have curl; then
         ping_code=$(curl -s -o /dev/null --max-time 4 -w '%{http_code}' http://127.0.0.1:5636/ping || echo 000)
-        api_code=$(curl -s -o /dev/null --max-time 4 -w '%{http_code}' http://127.0.0.1:5636/api/1/alerts || echo 000)
+        api_code=$(curl -s -o /dev/null --max-time 4 -w '%{http_code}' http://127.0.0.1:5636/api/alerts || echo 000)
         if [ "$ping_code" = "200" ] && [ "$api_code" = "401" ]; then
-            ok "EveBox HTTP prêt (/ping=200, /api/1/alerts=401 protégé)."
+            ok "EveBox HTTP prêt (/ping=200, /api/alerts=401 protégé)."
         elif [ "$ping_code" = "200" ]; then
-            warn "EveBox /ping=200, mais /api/1/alerts=$api_code (attendu 401)."
+            warn "EveBox /ping=200, mais /api/alerts=$api_code (attendu 401)."
         else
             fail "EveBox injoignable (/ping=$ping_code)."
         fi
@@ -300,7 +303,7 @@ dbg_loki() {
     while [ "$i" -lt 10 ]; do
         resp=$(curl -s --max-time 5 -u "$auth" -H "Content-Type: application/json" \
             -d "{\"queries\":[{\"refId\":\"A\",\"datasource\":{\"type\":\"loki\",\"uid\":\"loki\"},\"expr\":\"sum(count_over_time({job=\\\"suricata\\\",event_type=\\\"alert\\\"} |= \\\"${TRACE_ID}\\\" [15m]))\",\"queryType\":\"instant\"}],\"from\":\"now-15m\",\"to\":\"now\"}" \
-            http://127.0.0.1:3000/api/ds/query || true)
+            ${GRAFANA_URL}/api/ds/query || true)
         if printf '%s' "$resp" | grep -q '"values":\[\[[0-9]*\],\[[1-9]'; then
             loki_hit=1; break
         fi
@@ -323,7 +326,7 @@ dbg_loki() {
         expr="${label_q#*:}"
         r=$(curl -s --max-time 5 -u "$auth" -H "Content-Type: application/json" \
             -d "{\"queries\":[{\"refId\":\"A\",\"datasource\":{\"type\":\"loki\",\"uid\":\"loki\"},\"expr\":\"${expr}\",\"queryType\":\"instant\"}],\"from\":\"now-1h\",\"to\":\"now\"}" \
-            http://127.0.0.1:3000/api/ds/query || true)
+            ${GRAFANA_URL}/api/ds/query || true)
         if printf '%s' "$r" | grep -q '"status":200'; then
             ok "Requête dashboard $name valide (HTTP/Loki 200)."
         else
@@ -341,7 +344,7 @@ dbg_alerting() {
     fi
 
     auth="${GRAFANA_ADMIN_USER}:${GRAFANA_ADMIN_PASSWORD}"
-    rules_state=$(curl -s --max-time 5 -u "$auth" http://127.0.0.1:3000/api/prometheus/grafana/api/v1/rules || true)
+    rules_state=$(curl -s --max-time 5 -u "$auth" ${GRAFANA_URL}/api/prometheus/grafana/api/v1/rules || true)
     if have python3 && [ -n "$rules_state" ]; then
         PY_RULES='
 import json, sys
