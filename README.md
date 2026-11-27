@@ -57,11 +57,11 @@ docker compose up -d --build
 **Mise à jour ET Open et scénario d'attaque :**
 
 ```bash
-./suricata/update-rules.sh        # met à jour ET Open (Suricata) et recharge à chaud
-./scripts/check-lab.sh            # vérifie les services, endpoints et volumes du labo
-docker compose build attacker     # construit le poste attaquant (profil "attack")
-docker compose run --rm attacker  # scénario guidé : --no-pause, --fast, --interactive
-./scripts/debug-lab.sh            # trace un événement de bout en bout si un maillon ne répond pas
+./suricata/update-rules.sh             # met à jour ET Open et recharge à chaud
+./scripts/check-lab.sh                 # vérifie les 9 services, endpoints, Suricata et Loki
+docker compose build attacker          # construit le poste attaquant (profil attack)
+docker compose run --rm attacker       # options : --no-pause, --fast, --interactive
+./scripts/debug-lab.sh                 # trace E2E du traceur et diagnostic des 6 maillons
 ```
 
 > **Port 3000 déjà occupé ?** Grafana peut être publié ailleurs sans modifier le dépôt, via un fichier de surcharge local (non versionné) :
@@ -95,8 +95,8 @@ Tous les comptes (PostgreSQL, EveBox, Grafana) sont configurés via `.env` — a
 
 - **Portail & EveBox** : sessions par cookie `HttpOnly`, mots de passe salés dans PostgreSQL, utilisateur EveBox créé au 1er démarrage par `evebox/entrypoint.sh`.
 - **Sonde Suricata (`suricata/`)** : `entrypoint.sh` repère le bridge `br-xxxx` par la passerelle `172.20.0.1`, active `promisc on` et lance Suricata sous `--user suricata`. `HOME_NET` cible uniquement `.10`, `.11`, `.12`, `.14` pour que `attacker` (`.2`) reste dans `$EXTERNAL_NET`. `tpacket-v3: no` et `default-packet-size: 65535` assurent la capture inter-conteneurs sans faux positifs `AF-PACKET truncated packet`.
-- **5 règles custom (`suricata/rules/local.rules`)** + jeu ET Open (~53 600 règles) :
-  `2000001` (SQLi URI), `2000002` (User-Agent offensif), `2000003` (volume DNS `>= 30` req/10 s), `2000004` (label DNS `>= 40` car.), `2000005` (domaines tunnel : ngrok, duckdns, no-ip…).
+- **7 règles custom (`suricata/rules/local.rules`)** + jeu ET Open (~53 600 règles) :
+  `2000001` (SQLi URI), `2000002` (User-Agent offensif), `2000003` (volume DNS `>= 30` req/10 s), `2000004` (label DNS `>= 40` car.), `2000005` (domaines tunnel : ngrok, duckdns, no-ip…), `2000006` (SQLi dans le corps POST), `2000007` (traversée de répertoires).
 
 **Dashboards Grafana (`grafana/dashboards/`) :**
 - **Suricata - Vue Direction** (`direction.json`, 7 panneaux) : alertes sur période, SLO sév. 1 (`cible = 0`), santé/disponibilité sonde, répartition par sévérité, Top 10 attaquants, évolution.
@@ -151,7 +151,7 @@ Détail complet, commandes de preuve et risques acceptés : [`docs/DURCISSEMENT.
 
 - [x] Zone DMZ (`web`, `api`, `db`) + authentification
 - [x] Console `evebox` (SQLite, auth `.env`)
-- [x] Sonde `suricata` (`af-packet`, 5 règles custom, ET Open)
+- [x] Sonde `suricata` (`af-packet`, 7 règles custom, ET Open)
 - [x] Dashboards `Grafana` + `Loki` (Direction & Exploitation USE/RED)
 - [x] Alerting Grafana (5 règles) + notifications `Mailpit`
 - [x] Conteneur `attacker` et scénario 6 étapes (`sqlmap` inclus)

@@ -2,6 +2,7 @@ import os
 import hmac
 import hashlib
 import secrets
+import time
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, Form, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -57,7 +58,9 @@ app.add_middleware(
     allow_credentials=True,
 )
 
-# Sessions memory : {token: {"email": ..., "username": ...}}
+# Sessions memory : {token: {"email": ..., "username": ..., "expires_at": ...}}
+SESSION_TTL = 86400
+MAX_SESSIONS = 1000
 SESSIONS: dict[str, dict] = {}
 
 # Parametres scrypt : n=2^14 impose 16 Mio de memoire par calcul, soit ~50 ms
@@ -67,6 +70,16 @@ SCRYPT_N = 2 ** 14
 SCRYPT_R = 8
 SCRYPT_P = 1
 SCRYPT_DKLEN = 32
+
+
+def _prune_sessions(now: float) -> None:
+    """Supprime les sessions expirées et borne le cache en mémoire."""
+    expired = [k for k, v in SESSIONS.items() if v["expires_at"] <= now]
+    for k in expired:
+        del SESSIONS[k]
+    while len(SESSIONS) >= MAX_SESSIONS:
+        oldest = min(SESSIONS, key=lambda k: SESSIONS[k]["expires_at"])
+        del SESSIONS[oldest]
 
 
 def get_db():
@@ -132,9 +145,12 @@ def health(db: Session = Depends(get_db)):
 @app.get("/api/me")
 def me(request: Request):
     token = request.cookies.get("session")
-    if not token or token not in SESSIONS:
+    session = SESSIONS.get(token) if token else None
+    if not session or session["expires_at"] <= time.time():
+        if token and token in SESSIONS:
+            del SESSIONS[token]
         raise HTTPException(401, "Non connecté")
-    return SESSIONS[token]
+    return {"email": session["email"], "username": session["username"]}
 
 
 # Register
@@ -192,8 +208,10 @@ def login(
         )
         db.commit()
 
+    now = time.time()
+    _prune_sessions(now)
     token = secrets.token_hex(32)
-    SESSIONS[token] = {"email": email, "username": row[1]}
+    SESSIONS[token] = {"email": email, "username": row[1], "expires_at": now + SESSION_TTL}
 
     redirect = RedirectResponse(url="/dashboard.html", status_code=303)
     redirect.set_cookie(
@@ -201,7 +219,7 @@ def login(
         value=token,
         httponly=True,
         samesite="lax",
-        max_age=86400,  # 24 h
+        max_age=SESSION_TTL,
     )
     return redirect
 

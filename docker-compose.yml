@@ -60,6 +60,8 @@ services:
       - DAC_OVERRIDE
       - SETGID
       - SETUID
+    mem_limit: 128m
+    pids_limit: 64
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
       interval: 10s
@@ -82,7 +84,7 @@ services:
       POSTGRES_DB: g2db
       POSTGRES_USER: g2user
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      CORS_ORIGINS: http://localhost:8082
+      CORS_ORIGINS: http://localhost:8082,http://127.0.0.1:8082
     depends_on:
       db:
         condition: service_healthy
@@ -91,6 +93,8 @@ services:
     cap_drop:
       - ALL
     read_only: true
+    mem_limit: 256m
+    pids_limit: 64
     tmpfs:
       - /tmp
     restart: unless-stopped
@@ -131,6 +135,8 @@ services:
       - FOWNER
       - SETGID
       - SETUID
+    mem_limit: 384m
+    pids_limit: 128
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U g2user -d g2db"]
       interval: 10s
@@ -166,6 +172,8 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    mem_limit: 256m
+    pids_limit: 64
     healthcheck:
       # L'image EveBox ne contient pas wget mais curl. /ping repond sans
       # authentification : la page d'accueil, elle, renvoie 401 par conception.
@@ -226,6 +234,8 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    mem_limit: 768m
+    pids_limit: 128
     healthcheck:
       test: ["CMD", "suricatasc", "-c", "uptime"]
       interval: 20s
@@ -263,6 +273,8 @@ services:
     cap_drop: [ALL]
     security_opt:
       - no-new-privileges:true
+    mem_limit: 384m
+    pids_limit: 128
     restart: unless-stopped
 
   promtail:
@@ -289,6 +301,8 @@ services:
     cap_drop: [ALL]
     security_opt:
       - no-new-privileges:true
+    mem_limit: 128m
+    pids_limit: 64
     restart: unless-stopped
 
   mailpit:
@@ -306,18 +320,14 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    mem_limit: 128m
+    pids_limit: 64
     restart: unless-stopped
 
   grafana:
     image: grafana/grafana:11.3.0
     container_name: g2-grafana
     logging: *default-logging
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:3000/api/health || exit 1"]
-      interval: 20s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
     hostname: grafana
     networks: [monitoring]
     depends_on: [loki, mailpit]
@@ -342,6 +352,14 @@ services:
     cap_drop: [ALL]
     security_opt:
       - no-new-privileges:true
+    mem_limit: 384m
+    pids_limit: 128
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     restart: unless-stopped
   #*****************************************
   #     Conteneur attaquant (scénario)
@@ -376,6 +394,8 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    mem_limit: 256m
+    pids_limit: 128
 volumes:
   db-data:
   suricata-logs:
