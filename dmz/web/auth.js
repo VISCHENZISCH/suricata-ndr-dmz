@@ -83,4 +83,20 @@
         });
     });
   }
+
+  // ── Boutons menu / sidebar (remplace les onclick inline bloqués par la CSP) ──
+  var menuBtn = document.querySelector(".menu-toggle");
+  if (menuBtn) {
+    menuBtn.addEventListener("click", function () {
+      var nav = document.querySelector(".navbar");
+      if (nav) nav.classList.toggle("open");
+    });
+  }
+  var sidebarBtn = document.querySelector(".sidebar-toggle");
+  if (sidebarBtn) {
+    sidebarBtn.addEventListener("click", function () {
+      var sidebar = sidebarBtn.closest(".sidebar");
+      if (sidebar) sidebar.classList.remove("open");
+    });
+  }
 })();
