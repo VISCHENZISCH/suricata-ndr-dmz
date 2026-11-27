@@ -57,10 +57,11 @@ docker compose up -d --build
 **Mise à jour ET Open et scénario d'attaque :**
 
 ```bash
-./scripts/check-lab.sh                 # vérifie les 9 services, endpoints, Suricata & Loki
-./suricata/update-rules.sh             # met à jour ET Open + recharge à chaud
+./suricata/update-rules.sh  #Suricata & Loki
+./scripts/check-lab.sh                 # vérifie les 9 services, endpoints,            # met à jour ET Open + recharge à chaud
 docker compose build attacker          # construit le poste attaquant (profil attack)
 docker compose run --rm attacker       # options : --no-pause, --fast, --interactive
+./scripts/debug-lab.sh
 ```
 
 ## Services déployés
