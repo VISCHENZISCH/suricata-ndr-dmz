@@ -88,10 +88,13 @@ to_int() {
 }
 
 # Lit une variable dans .env sans exécuter le fichier (pas de "source").
-env_get() {
-    [ -f .env ] || return 0
-    sed -n "s/^$1=//p" .env | tail -n 1 | tr -d '\r' \
-        | sed -e 's/^"\(.*\)"$/\1/' -e "s/^'\(.*\)'\$/\1/"
+env_get() { env_get_from .env "$1"; }
+
+# Idem depuis un fichier donné : env_get_from <fichier> <CLE>
+env_get_from() {
+    [ -n "${1:-}" ] && [ -f "$1" ] || return 0
+    sed -n "s/^${2}=//p" "$1" | tail -n 1 | tr -d '\r' \
+        | sed -e 's/^"\(.*\)"$/\1/' -e "s/^'\(.*\)'$/\1/"
 }
 
 # http_code URL [user:pass] -> code HTTP, ou 000 si injoignable (jamais de doublon).
@@ -470,6 +473,25 @@ if [ -f .env ]; then
         fail ".env est versionné dans Git."
     else
         ok ".env exclu de Git (.gitignore)."
+    fi
+
+    # Les valeurs du modèle ne doivent pas se retrouver en production.
+    faibles=""
+    for cle in POSTGRES_PASSWORD EVEBOX_PASSWORD GRAFANA_ADMIN_PASSWORD; do
+        valeur=$(env_get "$cle")
+        modele=$(env_get_from .env.example "$cle")
+        if [ -z "$valeur" ]; then
+            faibles="$faibles $cle(vide)"
+        elif [ -n "$modele" ] && [ "$valeur" = "$modele" ]; then
+            faibles="$faibles $cle(valeur du modèle)"
+        elif [ "${#valeur}" -lt 16 ]; then
+            faibles="$faibles $cle(moins de 16 caractères)"
+        fi
+    done
+    if [ -z "$faibles" ]; then
+        ok "Mots de passe applicatifs personnalisés (16 caractères minimum)."
+    else
+        fail "Secrets faibles ou non personnalisés :$faibles"
     fi
 fi
 

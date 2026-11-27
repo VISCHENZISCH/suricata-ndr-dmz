@@ -1,4 +1,5 @@
 import os
+import hmac
 import hashlib
 import secrets
 from contextlib import asynccontextmanager
@@ -59,6 +60,14 @@ app.add_middleware(
 # Sessions memory : {token: {"email": ..., "username": ...}}
 SESSIONS: dict[str, dict] = {}
 
+# Parametres scrypt : n=2^14 impose 16 Mio de memoire par calcul, soit ~50 ms
+# ici. C'est ce cout memoire qui rend une attaque GPU ou ASIC non rentable,
+# contrairement a un simple SHA-256.
+SCRYPT_N = 2 ** 14
+SCRYPT_R = 8
+SCRYPT_P = 1
+SCRYPT_DKLEN = 32
+
 
 def get_db():
     db = SessionLocal()
@@ -69,14 +78,47 @@ def get_db():
 
 
 def hash_password(password: str) -> str:
+    """Derive un mot de passe avec scrypt (memoire dure, resiste au GPU).
+
+    Format : scrypt$n$r$p$sel$empreinte. Les parametres sont stockes dans
+    l'empreinte pour pouvoir les durcir plus tard sans casser les comptes.
+    """
     salt = secrets.token_hex(16)
-    h = hashlib.sha256(f"{salt}{password}".encode()).hexdigest()
-    return f"{salt}${h}"
+    dk = hashlib.scrypt(
+        password.encode(),
+        salt=salt.encode(),
+        n=SCRYPT_N,
+        r=SCRYPT_R,
+        p=SCRYPT_P,
+        dklen=SCRYPT_DKLEN,
+    )
+    return f"scrypt${SCRYPT_N}${SCRYPT_R}${SCRYPT_P}${salt}${dk.hex()}"
 
 
 def verify_password(password: str, stored: str) -> bool:
-    salt, h = stored.split("$", 1)
-    return hashlib.sha256(f"{salt}{password}".encode()).hexdigest() == h
+    """Verifie un mot de passe, y compris l'ancien format sha256 (migration)."""
+    parts = stored.split("$")
+    if parts[0] == "scrypt" and len(parts) == 6:
+        _, n, r, p, salt, expected = parts
+        dk = hashlib.scrypt(
+            password.encode(),
+            salt=salt.encode(),
+            n=int(n),
+            r=int(r),
+            p=int(p),
+            dklen=len(expected) // 2,
+        )
+        return hmac.compare_digest(dk.hex(), expected)
+    if len(parts) == 2:  # ancien format : sel$sha256
+        salt, h = parts
+        legacy = hashlib.sha256(f"{salt}{password}".encode()).hexdigest()
+        return hmac.compare_digest(legacy, h)
+    return False
+
+
+def needs_rehash(stored: str) -> bool:
+    """Vrai si l'empreinte n'est pas au format scrypt courant."""
+    return not stored.startswith(f"scrypt${SCRYPT_N}${SCRYPT_R}${SCRYPT_P}$")
 
 
 # Check Health
@@ -140,6 +182,15 @@ def login(
     ).fetchone()
     if not row or not verify_password(password, row[0]):
         raise HTTPException(401, "E-mail ou mot de passe incorrect.")
+
+    # Migration transparente : un compte encore en sha256 est re-hache en scrypt
+    # des la premiere connexion reussie, sans demander de changer de mot de passe.
+    if needs_rehash(row[0]):
+        db.execute(
+            text("UPDATE users SET password_hash = :h WHERE email = :e"),
+            {"h": hash_password(password), "e": email},
+        )
+        db.commit()
 
     token = secrets.token_hex(32)
     SESSIONS[token] = {"email": email, "username": row[1]}

@@ -30,6 +30,12 @@ de `.env` au premier démarrage, jamais codées en dur :
 | Grafana | `GRAFANA_ADMIN_USER` | `GF_SECURITY_ADMIN_USER` / `GF_SECURITY_ADMIN_PASSWORD` |
 | PostgreSQL | `g2user` | `POSTGRES_USER` / `POSTGRES_PASSWORD`, SCRAM-SHA-256 |
 
+**Comptes du portail** (`users`) : mots de passe dérivés avec **scrypt**
+(`n=2^14`, `r=8`, `p=1`, 16 Mio de mémoire par calcul). L'ancien format
+SHA-256 salé reste accepté à la connexion puis est ré-haché automatiquement.
+Coût mesuré : 86 ms par authentification, contre quelques microsecondes en
+SHA-256, ce qui rend une attaque GPU non rentable sur une base volée.
+
 **EveBox** exige une session pour toute lecture de données :
 
 ```console
@@ -73,6 +79,14 @@ $ git ls-files --error-unmatch .env
 Did you forget to 'git add'?
 ```
 
+`check-lab.sh` compare en plus les trois mots de passe à ceux de `.env.example`
+et refuse une valeur restée au modèle ou de moins de 16 caractères :
+
+```console
+$ ./scripts/check-lab.sh
+  [FAIL] Secrets faibles ou non personnalisés : GRAFANA_ADMIN_PASSWORD(valeur du modèle)
+```
+
 À noter pour le rapport : les secrets passent par des variables d'environnement,
 donc restent visibles dans `docker inspect`. La suite logique serait les secrets
 Docker (`POSTGRES_PASSWORD_FILE`, `GF_SECURITY_ADMIN_PASSWORD__FILE`), hors
@@ -110,7 +124,7 @@ quelques `tmpfs` ciblés sont inscriptibles :
 | api | `tmpfs` `/tmp` |
 | db | volume `db-data`, `tmpfs` `/var/run/postgresql`, `/tmp` |
 | evebox | volumes `evebox-data`, `suricata-logs` (ro), `tmpfs` `/tmp` |
-| suricata | volumes `suricata-logs`, `suricata-rules`, `tmpfs` `/var/run/suricata` |
+| suricata | volumes `suricata-logs`, `suricata-rules`, et le volume anonyme imposé par l'image sur `/var/run/suricata` (le `tmpfs` déclaré ne s'applique pas : un `VOLUME` d'image l'emporte) |
 | loki / promtail | volumes `loki-data`, `promtail-pos`, `tmpfs` `/tmp` |
 | grafana | volume `grafana-data`, `tmpfs` `/tmp` |
 | mailpit | `tmpfs` `/tmp` (stockage en mémoire) |
@@ -145,6 +159,30 @@ $ docker inspect g2-suricata --format '{{.HostConfig.CapDrop}} {{.HostConfig.Cap
   l'hôte et fait tomber la pile, sonde comprise.
 - Healthchecks sur les 9 services, avec `start_period` adapté : 180 s pour
   Suricata, qui charge 53 000 signatures avant d'être réellement prêt.
+
+## 4 bis. Application web
+
+- **En-têtes de sécurité** (`dmz/web/nginx.conf`) : `server_tokens off` (plus de
+  version nginx dans `Server`), `X-Content-Type-Options: nosniff`,
+  `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` et une
+  `Content-Security-Policy` limitée à l'origine (`'unsafe-inline'` uniquement
+  pour les styles, quelques pages utilisant `style="..."`).
+
+  ```console
+  $ curl -sI http://127.0.0.1:8082/ | grep -iE '^server|^x-|^content-security'
+  Server: nginx
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer
+  Content-Security-Policy: default-src 'self'; ...
+  ```
+
+- **Cookie de session** : `HttpOnly`, `SameSite=Lax`, jeton de 32 octets.
+  `Secure` reste à ajouter si le portail passe un jour en HTTPS.
+- **CORS** restreint à l'origine du portail, méthodes `GET`/`POST` seulement.
+- **Protection anti-force brute de Grafana** active : au-delà de quelques
+  échecs consécutifs, le compte est temporairement bloqué (visible dans les
+  journaux : `too many consecutive incorrect login attempts`).
 
 ## 5. Images
 
@@ -185,6 +223,7 @@ versionnement de `.env`, et l'authentification d'EveBox et de Grafana.
   [OK]   Images épinglées (aucun tag :latest).
   [OK]   .env lisible par son seul propriétaire (600).
   [OK]   .env exclu de Git (.gitignore).
+  [OK]   Mots de passe applicatifs personnalisés (16 caractères minimum).
   [OK]   EveBox impose une authentification (401 sans identifiants).
   [OK]   Grafana impose une authentification (401 sans identifiants).
 ```

@@ -129,6 +129,7 @@ Détail complet, commandes de preuve et risques acceptés : [`docs/DURCISSEMENT.
 - **Exposition** limitée à `127.0.0.1` (`8082`, `5636`, `3001`, `8025`) ; `api`, `db`, `loki`, `promtail` non publiés.
 - **Conteneurs** : `read_only: true` et `no-new-privileges: true` sur les 9 services, `cap_drop: [ALL]` partout avec `cap_add` justifié service par service (`web`, `db`, `suricata` uniquement), comptes non-root (`apiuser`, grafana `472`, loki `10001`) ou abandon de privilèges (`postgres`, `suricata`).
 - **Images** épinglées (aucun `:latest`), journalisation `json-file` bornée à 10 Mo × 3, healthchecks sur les 9 services.
+- **Application** : mots de passe en scrypt (16 Mio par calcul, ancien SHA-256 ré-haché à la connexion), en-têtes de sécurité et `server_tokens off` sur Nginx, cookie `HttpOnly`/`SameSite=Lax`, CORS restreint.
 - **Vérification** automatique : `./scripts/check-lab.sh` (section 7).
 
 ## Structure du dépôt
