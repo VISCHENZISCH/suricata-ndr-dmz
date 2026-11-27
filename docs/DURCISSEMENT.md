@@ -179,10 +179,16 @@ $ docker inspect g2-suricata --format '{{.HostConfig.CapDrop}} {{.HostConfig.Cap
 
 - **Cookie de session** : `HttpOnly`, `SameSite=Lax`, jeton de 32 octets.
   `Secure` reste à ajouter si le portail passe un jour en HTTPS.
+- **Aucune requête vers un tiers** : l'import Google Fonts de `style.css` a été
+  retiré (polices système), ce qui supprime à la fois la fuite d'information
+  vers Google et l'exception CSP qu'il imposait.
 - **CORS** restreint à l'origine du portail, méthodes `GET`/`POST` seulement.
 - **Protection anti-force brute de Grafana** active : au-delà de quelques
   échecs consécutifs, le compte est temporairement bloqué (visible dans les
-  journaux : `too many consecutive incorrect login attempts`).
+  journaux : `too many consecutive incorrect login attempts`). Le compteur est
+  persistant (table `login_attempt` de `grafana.db`) : après une série d'échecs,
+  le redémarrage ne suffit pas, il faut attendre la fin du blocage ou vider la
+  table dans le volume `grafana-data`.
 
 ## 5. Images
 
