@@ -164,7 +164,7 @@ Détail complet, commandes de preuve et risques acceptés : [`docs/DURCISSEMENT.
 
 | Rôle | Membre |
 |---|---|
-| Architecte Déploiement, DevSecOps, IaC (chef d'équipe) | TOVIGNAN Kouassi Félix |
+| Architecte Déploiement, IaC (chef d'équipe) | TOVIGNAN Kouassi Félix |
 | Spécialiste Sécurisation et Durcissement | KPEGBE Uriel |
 | Spécialiste Collecte, Ingestion et Sondes | AGBO Ognankitan Eliézer |
 | Spécialiste Métrologie et Dashboards | AVOCETIEN Karol |
