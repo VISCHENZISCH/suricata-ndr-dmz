@@ -122,9 +122,14 @@ Tous les comptes (PostgreSQL, EveBox, Grafana) sont configurés via `.env` — a
 
 ## Durcissement
 
-- **Secrets** dans `.env` (ignoré par Git, modèle `.env.example`) ; accès anonyme et inscription désactivés dans Grafana.
-- **Exposition** limitée à `127.0.0.1` (`8082`, `5636`, `3000`, `8025`) ; `api`, `db`, `loki`, `promtail` non publiés.
-- **Privilèges & FS** : images épinglées, `no-new-privileges: true` partout, `cap_drop: [ALL]` sur `loki`/`promtail`/`grafana`, `read_only: true` sur `web`/`api`/`loki`/`promtail`/`attacker`, `apiuser` non-root, healthchecks sur `web`/`api`/`db`/`evebox`/`suricata`.
+Détail complet, commandes de preuve et risques acceptés : [`docs/DURCISSEMENT.md`](docs/DURCISSEMENT.md).
+
+- **Secrets** dans `.env` (mode `600`, ignoré par Git, modèle `.env.example`) ; mots de passe générés aléatoirement, aucun compte par défaut.
+- **Authentification** obligatoire sur EveBox (`/api/alerts` → 401) et Grafana (accès anonyme et inscription désactivés) ; PostgreSQL en SCRAM-SHA-256 sur socket **et** réseau (`dmz/db/harden-hba.sh`).
+- **Exposition** limitée à `127.0.0.1` (`8082`, `5636`, `3001`, `8025`) ; `api`, `db`, `loki`, `promtail` non publiés.
+- **Conteneurs** : `read_only: true` et `no-new-privileges: true` sur les 9 services, `cap_drop: [ALL]` partout avec `cap_add` justifié service par service (`web`, `db`, `suricata` uniquement), comptes non-root (`apiuser`, grafana `472`, loki `10001`) ou abandon de privilèges (`postgres`, `suricata`).
+- **Images** épinglées (aucun `:latest`), journalisation `json-file` bornée à 10 Mo × 3, healthchecks sur les 9 services.
+- **Vérification** automatique : `./scripts/check-lab.sh` (section 7).
 
 ## Structure du dépôt
 
@@ -138,7 +143,7 @@ Tous les comptes (PostgreSQL, EveBox, Grafana) sont configurés via `.env` — a
 ├── loki/ & promtail/        stockage et collecte de eve.json
 ├── grafana/                 provisioning (datasource, 5 alertes) + 2 dashboards JSON
 ├── scripts/                 check-lab.sh, check-client.sh (Linux/WSL), debug-lab.sh (trace E2E)
-└── docs/                    cahier des charges PDF, guide et ressources
+└── docs/                    cahier des charges PDF, guide, durcissement et ressources
 ```
 
 ## Feuille de route
@@ -149,6 +154,7 @@ Tous les comptes (PostgreSQL, EveBox, Grafana) sont configurés via `.env` — a
 - [x] Dashboards `Grafana` + `Loki` (Direction & Exploitation USE/RED)
 - [x] Alerting Grafana (5 règles) + notifications `Mailpit`
 - [x] Conteneur `attacker` et scénario 6 étapes (`sqlmap` inclus)
+- [x] Durcissement complet (Pilier 2) : secrets, authentification, `read_only`, `cap_drop`, images figées, `docs/DURCISSEMENT.md`
 - [ ] Rapport technique (15-20 p. PDF) et soutenance (25 min)
 
 ## Équipe

@@ -52,6 +52,7 @@ Vérifie l'état complet du labo Suricata NDR :
   4. Sonde Suricata (uptime, bridge promiscuous, eve.json, règles)
   5. Chaîne Promtail -> Loki -> Grafana (dashboards, alertes, logs)
   6. Conteneur attaquant (image g2/attacker:1.0)
+  7. Durcissement (lecture seule, capabilities, ports, images, authentification)
 
 Code de sortie : 0 si aucun FAIL (et aucun WARN avec --strict), 1 sinon, 2 si option invalide.
 EOF
@@ -410,6 +411,80 @@ if docker image inspect g2/attacker:1.0 >/dev/null 2>&1; then
     ok "Image g2/attacker:1.0 prête (lancer : docker compose run --rm attacker)."
 else
     warn "Image g2/attacker:1.0 non construite (lancer : docker compose build attacker)."
+fi
+
+# 7. Durcissement
+section "7. Durcissement (racine en lecture seule, capabilities, exposition)"
+
+if have docker; then
+    n_ctn=$(docker compose ps -q 2>/dev/null | wc -l | tr -d ' ')
+    ro_ko=""; nnp_ko=""; drop_ko=""
+    for c in $(docker compose ps -q 2>/dev/null); do
+        nom=$(docker inspect "$c" --format '{{.Name}}' 2>/dev/null | sed 's#^/##')
+        ro=$(docker inspect "$c" --format '{{.HostConfig.ReadonlyRootfs}}' 2>/dev/null)
+        nnp=$(docker inspect "$c" --format '{{join .HostConfig.SecurityOpt ","}}' 2>/dev/null)
+        drop=$(docker inspect "$c" --format '{{join .HostConfig.CapDrop ","}}' 2>/dev/null)
+        [ "$ro" = "true" ] || ro_ko="$ro_ko $nom"
+        case "$nnp" in *no-new-privileges:true*) ;; *) nnp_ko="$nnp_ko $nom" ;; esac
+        case "$drop" in *ALL*) ;; *) drop_ko="$drop_ko $nom" ;; esac
+    done
+    if [ -z "$ro_ko" ]; then
+        ok "Racine en lecture seule sur les $n_ctn services."
+    else
+        warn "read_only absent sur :$ro_ko."
+    fi
+    if [ -z "$nnp_ko" ]; then
+        ok "no-new-privileges actif partout."
+    else
+        warn "no-new-privileges absent sur :$nnp_ko."
+    fi
+    if [ -z "$drop_ko" ]; then
+        ok "cap_drop ALL par defaut, capabilities rendues au cas par cas."
+    else
+        warn "cap_drop ALL absent sur :$drop_ko."
+    fi
+
+    exposes=$(docker compose ps --format '{{.Ports}}' 2>/dev/null |
+        grep -Eo '(0\.0\.0\.0|\[::\]):[0-9]+' | sort -u | tr '\n' ' ')
+    if [ -z "$exposes" ]; then
+        ok "Aucun port publié hors de la boucle locale (127.0.0.1)."
+    else
+        fail "Ports publiés sur toutes les interfaces : $exposes"
+    fi
+
+    if docker compose config --images 2>/dev/null | grep -q ':latest'; then
+        fail "Image en :latest détectée (versions non figées)."
+    else
+        ok "Images épinglées (aucun tag :latest)."
+    fi
+fi
+
+if [ -f .env ]; then
+    perm=$(stat -c '%a' .env 2>/dev/null || stat -f '%Lp' .env 2>/dev/null)
+    if [ "$perm" = "600" ]; then
+        ok ".env lisible par son seul propriétaire (600)."
+    else
+        warn ".env en mode ${perm:-inconnu} (600 recommandé)."
+    fi
+    if git -C "$ROOT" ls-files --error-unmatch .env >/dev/null 2>&1; then
+        fail ".env est versionné dans Git."
+    else
+        ok ".env exclu de Git (.gitignore)."
+    fi
+fi
+
+code=$(http_code "$EVEBOX_URL/api/alerts")
+if [ "$code" = "401" ]; then
+    ok "EveBox impose une authentification (401 sans identifiants)."
+else
+    warn "EveBox /api/alerts -> HTTP $code (401 attendu)."
+fi
+
+code=$(http_code "$GRAFANA_URL/api/dashboards/home")
+if [ "$code" = "401" ]; then
+    ok "Grafana impose une authentification (401 sans identifiants)."
+else
+    warn "Grafana /api/dashboards/home -> HTTP $code (401 attendu)."
 fi
 
 # Bilan 

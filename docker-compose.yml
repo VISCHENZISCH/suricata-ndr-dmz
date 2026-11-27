@@ -1,5 +1,13 @@
 name: suricata-ndr-dmz
 
+# Journalisation bornee : sans plafond, un conteneur bavard remplit le disque
+# de l'hote et fait tomber la pile (y compris la sonde). 30 Mo par service.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 networks:
   dmz:
     name: suricata-ndr-dmz-net
@@ -22,6 +30,7 @@ services:
   web:
     image: nginx:1.27-alpine
     container_name: g2-web
+    logging: *default-logging
     hostname: web
     networks:
       dmz:
@@ -41,6 +50,16 @@ services:
       - /tmp
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # nginx (master root) a besoin de : se lier au port 80, ecrire son pid et
+    # son cache, puis abandonner vers le compte nginx.
+    cap_add:
+      - NET_BIND_SERVICE
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETGID
+      - SETUID
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
       interval: 10s
@@ -53,6 +72,7 @@ services:
   api:
     build: ./dmz/api
     container_name: g2-api
+    logging: *default-logging
     hostname: api
     networks:
       dmz:
@@ -68,6 +88,8 @@ services:
         condition: service_healthy
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
     read_only: true
     tmpfs:
       - /tmp
@@ -78,6 +100,7 @@ services:
   db:
     image: postgres:16-alpine
     container_name: g2-db
+    logging: *default-logging
     hostname: db
     networks:
       dmz:
@@ -88,9 +111,26 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - ./dmz/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./dmz/db/harden-hba.sh:/docker-entrypoint-initdb.d/harden-hba.sh:ro
       - db-data:/var/lib/postgresql/data
+    # Racine en lecture seule : seul le volume de donnees est inscriptible,
+    # le socket et les fichiers temporaires passent par tmpfs.
+    read_only: true
+    tmpfs:
+      - /var/run/postgresql
+      - /tmp
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # L'entrypoint PostgreSQL chown/chmod le volume de donnees puis abandonne
+    # vers le compte postgres : seules ces capacites sont conservees.
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U g2user -d g2db"]
       interval: 10s
@@ -103,6 +143,7 @@ services:
   evebox:
     image: jasonish/evebox:0.32.0
     container_name: g2-evebox
+    logging: *default-logging
     hostname: evebox
     networks:
       dmz:
@@ -117,9 +158,14 @@ services:
       - ./evebox/entrypoint.sh:/usr/local/bin/evebox-entrypoint.sh:ro
       - suricata-logs:/var/log/suricata:ro
       - evebox-data:/var/lib/evebox
+    read_only: true
+    tmpfs:
+      - /tmp
     entrypoint: ["/bin/sh", "/usr/local/bin/evebox-entrypoint.sh"]
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
     healthcheck:
       # L'image EveBox ne contient pas wget mais curl. /ping repond sans
       # authentification : la page d'accueil, elle, renvoie 401 par conception.
@@ -142,12 +188,25 @@ services:
     build: ./suricata
     image: g2/suricata-ndr:7.0.17
     container_name: g2-suricata
+    logging: *default-logging
     hostname: suricata
     network_mode: host
     cap_add:
+      # NET_ADMIN : passer le bridge en mode promiscuous
+      # NET_RAW   : capture af-packet
+      # SYS_NICE  : ordonnancement des threads de capture
+      # CHOWN     : rendre les volumes de logs au compte suricata
+      # DAC_OVERRIDE : acceder au volume de regles possede par suricata
+      # SETUID/SETGID/SETPCAP : abandon de privileges vers le compte suricata
+      # (Suricata ouvre la capture en root puis tourne en non-root)
       - NET_ADMIN
       - NET_RAW
       - SYS_NICE
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETUID
+      - SETGID
+      - SETPCAP
     environment:
       DMZ_GATEWAY: "172.20.0.1"
     depends_on:
@@ -158,8 +217,15 @@ services:
       - ./suricata/rules/local.rules:/var/lib/suricata/rules/local.rules:ro
       - suricata-logs:/var/log/suricata
       - suricata-rules:/var/lib/suricata/rules
+    # Racine en lecture seule : journaux et regles vivent dans des volumes,
+    # le pid et le socket de commande dans un tmpfs.
+    read_only: true
+    tmpfs:
+      - /var/run/suricata
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
     healthcheck:
       test: ["CMD", "suricatasc", "-c", "uptime"]
       interval: 20s
@@ -176,6 +242,15 @@ services:
   loki:
     image: grafana/loki:3.2.0
     container_name: g2-loki
+    logging: *default-logging
+    healthcheck:
+      # /ready reste a 503 en mono-binaire avec l'anneau in-memory ; on teste le
+      # chemin de lecture, qui ne repond 200 que si Loki sert reellement.
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:3100/loki/api/v1/labels || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     hostname: loki
     networks: [monitoring]
     command: ["-config.file=/etc/loki/loki.yaml"]
@@ -193,6 +268,13 @@ services:
   promtail:
     image: grafana/promtail:3.2.0
     container_name: g2-promtail
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:9080/ready || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     hostname: promtail
     networks: [monitoring]
     command: ["-config.file=/etc/promtail/promtail.yaml"]
@@ -212,17 +294,30 @@ services:
   mailpit:
     image: axllent/mailpit:v1.21
     container_name: g2-mailpit
+    logging: *default-logging
     hostname: mailpit
     networks: [monitoring]
     ports:
       - "127.0.0.1:8025:8025"
+    read_only: true
+    tmpfs:
+      - /tmp
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
     restart: unless-stopped
 
   grafana:
     image: grafana/grafana:11.3.0
     container_name: g2-grafana
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     hostname: grafana
     networks: [monitoring]
     depends_on: [loki, mailpit]
@@ -241,6 +336,9 @@ services:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    read_only: true
+    tmpfs:
+      - /tmp
     cap_drop: [ALL]
     security_opt:
       - no-new-privileges:true
@@ -252,6 +350,7 @@ services:
     build: ./attacker
     image: g2/attacker:1.0
     container_name: g2-attacker
+    logging: *default-logging
     hostname: attaquant
     profiles: ["attack"]
     networks:
@@ -275,6 +374,8 @@ services:
       - NET_RAW
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
 volumes:
   db-data:
   suricata-logs:
