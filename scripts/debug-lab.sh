@@ -390,6 +390,16 @@ except Exception as e:
         warn "python3 absent ou API règles injoignable."
     fi
 
+    if [ -n "${MAILPIT_RELAY_CONFIG:-}" ]; then
+        if [ -z "${GMAIL_USER:-}" ] || [ -z "${GMAIL_APP_PASSWORD:-}" ]; then
+            warn "MAILPIT_RELAY_CONFIG est défini mais GMAIL_USER ou GMAIL_APP_PASSWORD est vide."
+        elif [ -z "${MAILPIT_RELAY_MATCHING:-}" ]; then
+            warn "MAILPIT_RELAY_CONFIG est défini sans MAILPIT_RELAY_MATCHING : aucun envoi automatique ne sera relayé."
+        else
+            ok "Relais SMTP Mailpit configuré (${MAILPIT_RELAY_CONFIG}, filtre ${MAILPIT_RELAY_MATCHING})."
+        fi
+    fi
+
     mp_before=$(curl -s --max-time 4 http://127.0.0.1:8025/api/v1/messages || true)
     mp_count=$(printf '%s' "$mp_before" | sed -n 's/.*"total":\([0-9]*\).*/\1/p')
     if [ -n "$mp_count" ]; then

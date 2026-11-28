@@ -112,6 +112,8 @@ Tous les comptes (PostgreSQL, EveBox, Grafana) sont configurés via `.env` — a
 | Sécu | Attaque critique sév. 1 | `>= 1` alerte `severity="1"` en `1m` (`0s`) | Critical |
 | Sécu | Tunnel / volume DNS anormal | `>= 1` alerte DNS G2 (`2000003`/`2000004`) en `1m` (`30s`) | Warning |
 
+> **Relais Gmail optionnel :** par défaut, toutes les notifications restent dans Mailpit (`ALERT_EMAIL=soc@g2.local`). Pour relayer aussi vers une boîte Gmail réelle, renseigner `GMAIL_USER`, `GMAIL_APP_PASSWORD`, `MAILPIT_RELAY_CONFIG=/etc/mailpit/relay.yml`, `MAILPIT_RELAY_MATCHING='gmail\.com$'` et `ALERT_EMAIL` dans `.env` (voir [`.env.example`](.env.example)), puis relancer `docker compose up -d mailpit grafana`.
+
 **Scénario d'attaque (`attacker/scenario.sh`, garde-fou RFC 1918) :**
 1. `nmap -sS` (top 200 ports) puis `nmap -sV` (`80`, `8000`, `5432`, `5636`)
 2. SQLi (`UNION SELECT`, `OR '1'='1'`) et traversal (`/../../../../etc/passwd`, `%2e%2e%2f`)
