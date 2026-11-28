@@ -22,6 +22,9 @@ networks:
   monitoring:
     name: suricata-ndr-monitoring-net
     driver: bridge
+    ipam:
+      config:
+        - subnet: 10.99.0.0/24
 
 services:
   #*****************************************
@@ -252,6 +255,8 @@ services:
     read_only: true
     tmpfs:
       - /var/run/suricata
+      - /tmp
+      - /tmp
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -386,7 +391,7 @@ services:
     security_opt:
       - no-new-privileges:true
     mem_limit: 384m
-    pids_limit: 128
+    pids_limit: 512
     healthcheck:
       # Grafana écoute en HTTPS ; --no-check-certificate pour le cert auto-signé.
       test: ["CMD", "wget", "--no-check-certificate", "-qO-", "https://127.0.0.1:3000/api/health"]
