@@ -39,3 +39,4 @@ Thumbs.db
 
 # Surcharge locale (ports specifiques a la machine)
 docker-compose.override.yml
+captures/
