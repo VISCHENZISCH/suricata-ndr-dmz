@@ -333,6 +333,14 @@ services:
     logging: *default-logging
     hostname: mailpit
     networks: [monitoring]
+    environment:
+      MP_SMTP_RELAY_CONFIG: ${MAILPIT_RELAY_CONFIG:-}
+      MP_SMTP_RELAY_MATCHING: ${MAILPIT_RELAY_MATCHING:-}
+      GMAIL_USER: ${GMAIL_USER:-}
+      GMAIL_APP_PASSWORD: ${GMAIL_APP_PASSWORD:-}
+    volumes:
+      - ./mailpit/entrypoint.sh:/usr/local/bin/mailpit-entrypoint.sh:ro
+    entrypoint: ["/bin/sh", "/usr/local/bin/mailpit-entrypoint.sh"]
     ports:
       - "127.0.0.1:8025:8025"
     read_only: true
@@ -368,6 +376,7 @@ services:
       GF_SMTP_ENABLED: "true"
       GF_SMTP_HOST: mailpit:1025
       GF_SMTP_FROM_ADDRESS: grafana@g2.local
+      ALERT_EMAIL: ${ALERT_EMAIL:-soc@g2.local}
       # --- TLS : Grafana écoute en HTTPS ---
       GF_SERVER_PROTOCOL: https
       GF_SERVER_CERT_FILE: /etc/grafana/tls/grafana.crt

@@ -7,7 +7,7 @@ contactPoints:
       - uid: mailpit-email
         type: email
         settings:
-          addresses: soc@g2.local
+          addresses: $ALERT_EMAIL
 
 policies:
   - orgId: 1

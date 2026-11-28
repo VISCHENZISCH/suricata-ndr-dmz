@@ -194,6 +194,16 @@ if [ -f .env ]; then
             ok "Variable $var définie."
         fi
     done
+    relay_cfg=$(env_get MAILPIT_RELAY_CONFIG)
+    if [ -n "$relay_cfg" ]; then
+        if [ -z "$(env_get GMAIL_USER)" ] || [ -z "$(env_get GMAIL_APP_PASSWORD)" ]; then
+            warn "MAILPIT_RELAY_CONFIG défini mais GMAIL_USER ou GMAIL_APP_PASSWORD manquant dans .env."
+        elif [ -z "$(env_get MAILPIT_RELAY_MATCHING)" ]; then
+            warn "MAILPIT_RELAY_CONFIG défini sans MAILPIT_RELAY_MATCHING : relais automatique inactif."
+        else
+            ok "Relais SMTP Mailpit configuré ($relay_cfg)."
+        fi
+    fi
 else
     fail "Fichier .env absent (copier .env.example vers .env)."
 fi
