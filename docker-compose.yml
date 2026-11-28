@@ -256,7 +256,6 @@ services:
     tmpfs:
       - /var/run/suricata
       - /tmp
-      - /tmp
     security_opt:
       - no-new-privileges:true
     cap_drop:
